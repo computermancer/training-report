@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Report</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .client-info {
+            margin-bottom: 30px;
+        }
+        .exercise {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .exercise-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .notes {
+            font-style: italic;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 3px solid #007bff;
+        }
+        .client-notes {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border: 1px solid #d1e7ff;
+            border-radius: 4px;
+        }
+        .client-notes h4 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="report-content">
+        <!-- Content will be inserted here by JavaScript -->
+    </div>
+    <script>
+        // Function to get form data
+        function getFormData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataParam = urlParams.get('data');
+            
+            if (dataParam) {
+                // Handle GET request with data in URL
+                return JSON.parse(decodeURIComponent(dataParam));
+            } else {
+                // Try to get data from the form
+                try {
+                    const formData = new URLSearchParams(window.location.hash.substring(1));
+                    const data = formData.get('data');
+                    return data ? JSON.parse(data) : {};
+                } catch (e) {
+                    console.error('Error parsing form data:', e);
+                    return {};
+                }
+            }
+        }
+
+
+        // Get report data
+        const reportData = getFormData();
+        console.log('Report data received:', reportData);
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        }
+
+        // Generate the report
+        function generateReport() {
+            const container = document.getElementById('report-content');
+            
+            // Header
+            let html = `
+                <div class="header">
+                    <h1>Workout Report</h1>
+                    <div class="client-info">
+                        <p><strong>Client:</strong> ${reportData.clientName || 'N/A'}</p>
+                        <p><strong>Trainer:</strong> ${reportData.trainerName || 'N/A'}</p>
+                        <p><strong>Date:</strong> ${formatDate(reportData.date) || 'N/A'}</p>
+                    </div>
+                </div>
+            `;
+
+            // Exercises
+            if (reportData.exercises && reportData.exercises.length > 0) {
+                html += '<h2>Exercises</h2>';
+                
+                reportData.exercises.forEach(exercise => {
+                    html += `
+                        <div class="exercise">
+                            <div class="exercise-name">${exercise.name}</div>
+                    `;
+
+                    // Exercise sets table
+                    if (exercise.sets && exercise.sets.length > 0) {
+                        html += `
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Set</th>
+                                        <th>Weight (kg)</th>
+                                        <th>Reps</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        exercise.sets.forEach((set, index) => {
+                            html += `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${set.weight || '0'}</td>
+                                    <td>${set.reps || '0'}</td>
+                                </tr>
+                            `;
+                        });
+
+                        html += `
+                                </tbody>
+                            </table>
+                        `;
+                    }
+
+                    // Exercise notes
+                    if (exercise.notes) {
+                        html += `
+                            <div class="notes">
+                                <strong>Notes:</strong> ${exercise.notes}
+                            </div>
+                        `;
+                    }
+
+
+                    html += '</div>'; // Close exercise div
+                });
+            }
+
+            // Client Notes
+            if (reportData.clientNotes && reportData.clientNotes.length > 0) {
+                html += `
+                    <div class="client-notes">
+                        <h4>Client Notes</h4>
+                `;
+                
+                reportData.clientNotes.forEach(note => {
+                    html += `
+                        <div class="note-card mb-3 p-3" style="border-left: 3px solid #17a2b8; background-color: #f8f9fa;">
+                            ${note.title ? `<h5>${note.title}</h5>` : ''}
+                            <div class="note-content" style="white-space: pre-line;">${note.content}</div>
+                            <div class="text-muted" style="font-size: 0.8rem; margin-top: 0.5rem;">
+                                ${new Date(note.timestamp).toLocaleString()}
+                                ${note.updatedAt ? `• Updated: ${new Date(note.updatedAt).toLocaleString()}` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`; // Close client-notes div
+            }
+
+            // Footer
+            html += `
+                <div class="footer no-print" style="margin-top: 30px; text-align: center; font-size: 0.9em; color: #666;">
+                    <p>Report generated on ${new Date().toLocaleString()}</p>
+                    <button onclick="window.print()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Print Report
+                    </button>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Generate the report when the page loads
+        window.onload = generateReport;
+    </script>
+</body>
+</html>
