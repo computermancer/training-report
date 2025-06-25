@@ -577,6 +577,21 @@ function setupClientNotes() {
     // Render all notes
     function renderNotes() {
         clientNotesList.innerHTML = '';
+        
+        if (notes.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'text-center p-4 bg-light rounded-3';
+            emptyState.style.color = '#6c757d';
+            emptyState.style.fontStyle = 'italic';
+            emptyState.style.minHeight = '80px';
+            emptyState.style.display = 'flex';
+            emptyState.style.alignItems = 'center';
+            emptyState.style.justifyContent = 'center';
+            emptyState.textContent = 'No client notes added yet. Click the "Add Client Notes" button to get started.';
+            clientNotesList.appendChild(emptyState);
+            return;
+        }
+        
         notes.forEach((note, index) => {
             const noteElement = createNoteElement(note, index);
             clientNotesList.appendChild(noteElement);
@@ -963,7 +978,13 @@ function updateExercisesEmptyState() {
     if (!hasExercises) {
         if (!emptyState) {
             emptyState = document.createElement('div');
-            emptyState.className = 'empty-state-message text-muted text-center py-4';
+            emptyState.className = 'empty-state-message text-center p-4 bg-light rounded-3';
+            emptyState.style.color = '#6c757d';
+            emptyState.style.fontStyle = 'italic';
+            emptyState.style.minHeight = '80px';
+            emptyState.style.display = 'flex';
+            emptyState.style.alignItems = 'center';
+            emptyState.style.justifyContent = 'center';
             emptyState.textContent = 'No exercises added yet. Click the "Add Exercise" button to get started.';
             exercisesList.appendChild(emptyState);
         }
