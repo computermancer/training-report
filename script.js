@@ -121,11 +121,11 @@ function initializeApp() {
     const setsModalEl = document.getElementById('setModal');
     const notesModalEl = document.getElementById('notesModal');
 
-    // Initialize modals with focus trap and proper aria attributes
+    // Initialize modals with accessibility in mind
     const modalOptions = {
-        focus: true,
-        keyboard: true,
-        backdrop: true
+        backdrop: 'static',
+        keyboard: true,  // Allow keyboard interaction
+        focus: true     // Focus trap for accessibility
     };
 
     if (clientNotesModalEl) {
@@ -154,6 +154,49 @@ function initializeApp() {
             }
         });
     }
+
+    // Add event listeners to handle accessibility for all modals
+    const modals = [
+        { el: clientNotesModalEl, name: 'clientNotesModal' },
+        { el: exerciseModalEl, name: 'exerciseModal' },
+        { el: setsModalEl, name: 'setsModal' },
+        { el: notesModalEl, name: 'notesModal' }
+    ];
+    
+    modals.forEach(({ el, name }) => {
+        if (!el) return;
+        
+        // When modal is about to be shown
+        el.addEventListener('show.bs.modal', function() {
+            // Remove aria-hidden and set aria-modal
+            this.removeAttribute('aria-hidden');
+            this.setAttribute('aria-modal', 'true');
+            
+            // Set role="dialog" for better screen reader support
+            if (!this.getAttribute('role')) {
+                this.setAttribute('role', 'dialog');
+            }
+        });
+        
+        // When modal is shown
+        el.addEventListener('shown.bs.modal', function() {
+            // Focus on the first focusable element
+            const focusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (focusable) {
+                focusable.focus();
+            }
+        });
+        
+        // When modal is hidden
+        el.addEventListener('hidden.bs.modal', function() {
+            // Return focus to the element that triggered the modal
+            const triggerElement = document.activeElement;
+            if (triggerElement && (triggerElement.matches('[data-bs-toggle="modal"]') || 
+                                 triggerElement.matches('[data-bs-target*="' + name + '"]'))) {
+                triggerElement.focus();
+            }
+        });
+    });
 
     // Set default date to today
     const today = new Date().toISOString().split('T')[0];
@@ -265,31 +308,31 @@ function saveExercise() {
     
     // Create exercise card
     const exerciseCard = document.createElement('div');
-    exerciseCard.className = 'card mb-3';
+    exerciseCard.className = 'card mb-3 rounded-3';
     exerciseCard.innerHTML = `
         <div class="card-body p-0">
-            <div class="bg-light p-3 border-bottom">
+            <div class="bg-success bg-opacity-10 p-3 border-bottom rounded-top-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
-                        <h5 class="card-title mb-0 me-2 exercise-title">${exerciseNameInput.value}</h5>
-                        <button class="btn btn-sm btn-link p-0 edit-exercise-name" title="Edit exercise name">
-                            <i class="bi bi-pencil"></i>
+                        <h5 class="card-title mb-0 exercise-title">${exerciseNameInput.value}</h5>
+                        <button class="btn btn-sm btn-outline-secondary edit-exercise-name" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Edit exercise name">
+                            <i class="bi bi-pencil" style="color: #6c757d; transition: color 0.2s;"></i>
                         </button>
-                        <div class="input-group edit-exercise-input d-none" style="max-width: 200px;">
-                            <input type="text" class="form-control form-control-sm" value="${exerciseNameInput.value}">
+                        <div class="edit-exercise-input d-none d-flex align-items-center gap-2" style="width: 100%; max-width: 100%;">
+                            <input type="text" class="form-control form-control-sm flex-grow-1" value="${exerciseNameInput.value}" style="min-width: 400px;">
                             <button class="btn btn-sm btn-primary save-edit">Save</button>
                             <button class="btn btn-sm btn-outline-secondary cancel-edit">Cancel</button>
                         </div>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-primary add-sets-btn">
+                        <button class="btn btn-sm btn-outline-success add-sets-btn">
                             <i class="bi bi-plus-circle"></i> Add Sets/Reps
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary add-notes-btn">
+                        <button class="btn btn-sm btn-outline-success add-notes-btn">
                             <i class="bi bi-pencil"></i> Add Notes
                         </button>
-                        <button class="btn btn-sm btn-outline-danger delete-exercise">
-                            Remove Exercise
+                        <button class="btn btn-sm btn-outline-danger delete-exercise" style="min-width: 120px;" data-id="${exercisesList.children.length}">
+                            <i class="bi bi-trash"></i>&nbsp;Remove Exercise
                         </button>
                     </div>
                 </div>
@@ -331,12 +374,16 @@ function saveExercise() {
             editBtn.classList.add('d-none');
             editContainer.classList.remove('d-none');
             exerciseInput.focus();
+            // Select all text in the input for easier editing
+            exerciseInput.select();
         });
         
         const saveEdit = () => {
             const newName = exerciseInput.value.trim();
             if (newName) {
                 exerciseTitle.textContent = newName;
+                // Update the input value to match the saved name
+                exerciseInput.value = newName;
             }
             editContainer.classList.add('d-none');
             exerciseTitle.classList.remove('d-none');
@@ -344,26 +391,50 @@ function saveExercise() {
         };
         
         saveEditBtn.addEventListener('click', saveEdit);
+        
+        // Handle Enter key to save
         exerciseInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') saveEdit();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveEdit();
+            }
         });
         
-        cancelEditBtn.addEventListener('click', () => {
+        // Handle Escape key to cancel
+        exerciseInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                editContainer.classList.add('d-none');
+                exerciseTitle.classList.remove('d-none');
+                editBtn.classList.remove('d-none');
+            }
+        });
+        
+        cancelEditBtn.addEventListener('click', (e) => {
+            e.preventDefault();
             editContainer.classList.add('d-none');
             exerciseTitle.classList.remove('d-none');
             editBtn.classList.remove('d-none');
-            exerciseInput.value = exerciseTitle.textContent; // Reset to original name
+            // Reset input to current title
+            exerciseInput.value = exerciseTitle.textContent.trim();
         });
     }
     
     // Add sets button functionality
     addSetsBtn.addEventListener('click', () => {
         currentExerciseCard = exerciseCard;
+        currentEditingSet = null; // Reset editing state
         
         // Clear all form fields before showing the modal
-        if (setsCountInput) setsCountInput.value = '';
-        if (repsInput) repsInput.value = '';
+        if (setsCountInput) setsCountInput.value = '3';
+        if (repsInput) repsInput.value = '10';
         if (weightInput) weightInput.value = '';
+        
+        // Update modal title and button text
+        const modalTitle = document.getElementById('setModalLabel');
+        const saveBtn = document.getElementById('saveSetsBtn');
+        if (modalTitle) modalTitle.textContent = 'Add Sets';
+        if (saveBtn) saveBtn.textContent = 'Add Sets';
         
         // Show the modal
         if (setsModal) {
@@ -589,11 +660,11 @@ function setupSetItemListeners(setItem) {
             // Store the row we're editing in the global variable
             currentEditingSet = row;
             
-            // Change the save button text
+            // Update modal title and button text
+            const modalTitle = document.getElementById('setModalLabel');
             const saveBtn = document.getElementById('saveSetsBtn');
-            if (saveBtn) {
-                saveBtn.textContent = 'Update Set';
-            }
+            if (modalTitle) modalTitle.textContent = 'Edit Set';
+            if (saveBtn) saveBtn.textContent = 'Update Set';
             
             // Show the modal
             if (setsModal) {
@@ -739,10 +810,34 @@ function setupClientNotes() {
         return;
     }
     
-    // Initialize modal only once
+    // Initialize client notes modal with accessibility in mind
     const clientNoteModal = new bootstrap.Modal(clientNoteModalEl, {
+        backdrop: 'static',
         keyboard: true,
-        backdrop: true
+        focus: true
+    });
+    
+    // Add accessibility event listeners for client notes modal
+    clientNoteModalEl.addEventListener('show.bs.modal', function() {
+        this.removeAttribute('aria-hidden');
+        this.setAttribute('aria-modal', 'true');
+        if (!this.getAttribute('role')) {
+            this.setAttribute('role', 'dialog');
+        }
+    });
+    
+    clientNoteModalEl.addEventListener('shown.bs.modal', function() {
+        const focusable = this.querySelector('input, textarea, button:not([disabled])');
+        if (focusable) {
+            focusable.focus();
+        }
+    });
+    
+    clientNoteModalEl.addEventListener('hidden.bs.modal', function() {
+        const triggerElement = document.activeElement;
+        if (triggerElement && triggerElement.matches('[data-bs-target*="clientNotesModal"]')) {
+            triggerElement.focus();
+        }
     });
     
     let currentNoteId = null;
@@ -797,18 +892,18 @@ function setupClientNotes() {
     // Create a note element
     function createNoteElement(note, index) {
         const noteElement = document.createElement('div');
-        noteElement.className = 'card mb-3';
+        noteElement.className = 'card mb-3 rounded-3';
         noteElement.innerHTML = `
             <div class="card-body p-0">
-                <div class="bg-light p-3 border-bottom">
+                <div class="bg-success bg-opacity-10 p-3 border-bottom rounded-top-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">${note.title || 'Untitled Note'}</h5>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary edit-note" data-id="${index}" title="Edit note">
-                                <i class="bi bi-pencil"></i>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm btn-outline-success edit-note" data-id="${index}">
+                                <i class="bi bi-pencil"></i> Edit Note
                             </button>
-                            <button class="btn btn-sm btn-outline-danger delete-note" data-id="${index}" title="Delete note">
-                                <i class="bi bi-trash"></i>
+                            <button class="btn btn-sm btn-outline-danger delete-note" data-id="${index}">
+                                <i class="bi bi-trash"></i> Remove Note
                             </button>
                         </div>
                     </div>
@@ -864,6 +959,10 @@ function setupClientNotes() {
         document.getElementById('clientNoteTitle').value = '';
         document.getElementById('clientNoteContent').value = '';
         
+        // Update modal title
+        const modalTitle = document.getElementById('clientNotesModalLabel');
+        if (modalTitle) modalTitle.textContent = 'Add Client Note';
+        
         // Show the modal
         clientNoteModal.show();
         
@@ -896,6 +995,11 @@ function setupClientNotes() {
             currentNoteId = id;
             clientNoteTitleInput.value = note.title || '';
             clientNoteContentInput.value = note.content;
+            
+            // Update modal title
+            const modalTitle = document.getElementById('clientNotesModalLabel');
+            if (modalTitle) modalTitle.textContent = 'Edit Client Note';
+            
             clientNoteModal.show();
         }
     }
