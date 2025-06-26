@@ -115,16 +115,45 @@ function initializeApp() {
         printReportBtn.addEventListener('click', printReport);
     }
     
-    // Initialize modals
+    // Initialize modals with proper accessibility settings
     const clientNotesModalEl = document.getElementById('clientNotesModal');
     const exerciseModalEl = document.getElementById('exerciseModal');
     const setsModalEl = document.getElementById('setModal');
     const notesModalEl = document.getElementById('notesModal');
 
-    if (clientNotesModalEl) clientNotesModal = new bootstrap.Modal(clientNotesModalEl);
-    if (exerciseModalEl) exerciseModal = new bootstrap.Modal(exerciseModalEl);
-    if (setsModalEl) setsModal = new bootstrap.Modal(setsModalEl);
-    if (notesModalEl) notesModal = new bootstrap.Modal(notesModalEl);
+    // Initialize modals with focus trap and proper aria attributes
+    const modalOptions = {
+        focus: true,
+        keyboard: true,
+        backdrop: true
+    };
+
+    if (clientNotesModalEl) {
+        clientNotesModal = new bootstrap.Modal(clientNotesModalEl, modalOptions);
+    }
+    if (exerciseModalEl) {
+        exerciseModal = new bootstrap.Modal(exerciseModalEl, modalOptions);
+    }
+    if (setsModalEl) {
+        setsModal = new bootstrap.Modal(setsModalEl, modalOptions);
+    }
+    if (notesModalEl && exerciseNotesInput) {
+        notesModal = new bootstrap.Modal(notesModalEl, modalOptions);
+        
+        // Handle focus management for notes modal
+        notesModalEl.addEventListener('shown.bs.modal', () => {
+            // Focus on the textarea when modal is shown
+            exerciseNotesInput.focus();
+        });
+        
+        // Clean up when modal is hidden
+        notesModalEl.addEventListener('hidden.bs.modal', () => {
+            // Clear any active focus
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
+    }
 
     // Set default date to today
     const today = new Date().toISOString().split('T')[0];
@@ -184,10 +213,21 @@ function initializeApp() {
         printReportBtn.addEventListener('click', printReport);
     }
     
-    // Initialize modals
-    if (document.getElementById('exerciseModal')) {
-        document.getElementById('exerciseModal').addEventListener('shown.bs.modal', () => {
-            if (exerciseNameInput) exerciseNameInput.focus();
+    // Initialize exercise modal with proper focus management
+    if (exerciseModalEl) {
+        exerciseModalEl.addEventListener('shown.bs.modal', () => {
+            if (exerciseNameInput) {
+                exerciseNameInput.focus();
+            }
+        });
+        
+        // Clean up when modal is hidden
+        exerciseModalEl.addEventListener('hidden.bs.modal', () => {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+            // Reset the form when modal is hidden
+            if (exerciseNameInput) exerciseNameInput.value = '';
         });
     }
     
@@ -198,19 +238,29 @@ function initializeApp() {
 }
 
 function showAddExerciseModal() {
-    if (!exerciseNameInput) return;
+    if (!exerciseNameInput || !exerciseModal) return;
+    
+    // Reset the form
     exerciseNameInput.value = '';
-    if (exerciseModal) exerciseModal.show();
+    
+    // Show the modal
+    exerciseModal.show();
+    
+    // Focus will be handled by the shown.bs.modal event
 }
 
 function saveExercise() {
     if (!exerciseNameInput || !exerciseNameInput.value.trim()) {
         alert('Please enter an exercise name');
+        if (exerciseNameInput) exerciseNameInput.focus();
         return;
     }
-    if (!exerciseNameInput.value.trim()) {
-        alert('Please enter an exercise name');
-        return;
+    
+    const exerciseName = exerciseNameInput.value.trim();
+    
+    // Close the modal before creating the exercise card
+    if (exerciseModal) {
+        exerciseModal.hide();
     }
     
     // Create exercise card
@@ -220,7 +270,17 @@ function saveExercise() {
         <div class="card-body p-0">
             <div class="bg-light p-3 border-bottom">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">${exerciseNameInput.value}</h5>
+                    <div class="d-flex align-items-center">
+                        <h5 class="card-title mb-0 me-2 exercise-title">${exerciseNameInput.value}</h5>
+                        <button class="btn btn-sm btn-link p-0 edit-exercise-name" title="Edit exercise name">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <div class="input-group edit-exercise-input d-none" style="max-width: 200px;">
+                            <input type="text" class="form-control form-control-sm" value="${exerciseNameInput.value}">
+                            <button class="btn btn-sm btn-primary save-edit">Save</button>
+                            <button class="btn btn-sm btn-outline-secondary cancel-edit">Cancel</button>
+                        </div>
+                    </div>
                     <div class="btn-group">
                         <button class="btn btn-sm btn-outline-primary add-sets-btn me-2" title="Add sets">
                             Add Sets/Reps/Weight
@@ -253,8 +313,50 @@ function saveExercise() {
         </div>
     `;
     
-    // Add sets button functionality
+    // Set up event listeners for the new exercise card
     const addSetsBtn = exerciseCard.querySelector('.add-sets-btn');
+    const editBtn = exerciseCard.querySelector('.edit-exercise-name');
+    const editContainer = exerciseCard.querySelector('.edit-exercise-input');
+    const saveEditBtn = exerciseCard.querySelector('.save-edit');
+    const cancelEditBtn = exerciseCard.querySelector('.cancel-edit');
+    const exerciseTitle = exerciseCard.querySelector('.exercise-title');
+    const exerciseInput = exerciseCard.querySelector('.edit-exercise-input input');
+    const addNotesBtn = exerciseCard.querySelector('.add-notes-btn');
+    const deleteBtn = exerciseCard.querySelector('.delete-exercise');
+    
+    // Edit exercise name
+    if (editBtn && editContainer && saveEditBtn && cancelEditBtn) {
+        editBtn.addEventListener('click', () => {
+            exerciseTitle.classList.add('d-none');
+            editBtn.classList.add('d-none');
+            editContainer.classList.remove('d-none');
+            exerciseInput.focus();
+        });
+        
+        const saveEdit = () => {
+            const newName = exerciseInput.value.trim();
+            if (newName) {
+                exerciseTitle.textContent = newName;
+            }
+            editContainer.classList.add('d-none');
+            exerciseTitle.classList.remove('d-none');
+            editBtn.classList.remove('d-none');
+        };
+        
+        saveEditBtn.addEventListener('click', saveEdit);
+        exerciseInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') saveEdit();
+        });
+        
+        cancelEditBtn.addEventListener('click', () => {
+            editContainer.classList.add('d-none');
+            exerciseTitle.classList.remove('d-none');
+            editBtn.classList.remove('d-none');
+            exerciseInput.value = exerciseTitle.textContent; // Reset to original name
+        });
+    }
+    
+    // Add sets button functionality
     addSetsBtn.addEventListener('click', () => {
         currentExerciseCard = exerciseCard;
         
@@ -302,19 +404,29 @@ function saveExercise() {
     });
     
     // Add notes button functionality
-    const addNotesBtn = exerciseCard.querySelector('.add-notes-btn');
     addNotesBtn.addEventListener('click', () => {
         currentExerciseCard = exerciseCard;
         const notesContainer = exerciseCard.querySelector('.exercise-notes');
-        const existingNotes = notesContainer.textContent.trim();
+        const contentElement = notesContainer.querySelector('.notes-content');
+        // If we have a content element, get its text content, otherwise get all text content
+        const existingNotes = contentElement ? 
+            contentElement.textContent.trim() : 
+            notesContainer.textContent.replace(/^Notes for .+?:\s*/, '').trim();
         exerciseNotesInput.value = existingNotes;
         notesModal.show();
     });
     
-    // Focus on notes input when notes modal is shown
-    document.getElementById('notesModal').addEventListener('shown.bs.modal', () => {
-        exerciseNotesInput.focus();
-    });
+    // Handle save notes button click
+    const saveNotesBtn = exerciseCard.querySelector('#saveNotesBtn');
+    if (saveNotesBtn) {
+        saveNotesBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const notes = exerciseNotesInput ? exerciseNotesInput.value.trim() : '';
+            if (notes) {
+                saveExerciseNotes(notes, exerciseCard);
+            }
+        });
+    }
     
     // Add delete exercise functionality
     const deleteExerciseBtn = exerciseCard.querySelector('.delete-exercise');
@@ -493,17 +605,32 @@ function setupSetItemListeners(setItem) {
     }
 }
 
-function saveExerciseNotes() {
-    if (!currentExerciseCard || !exerciseNotesInput) return;
+function saveExerciseNotes(notes, exerciseCard = null) {
+    const targetCard = exerciseCard || currentExerciseCard;
+    if (!targetCard || !exerciseNotesInput) return;
     
-    const notesContainer = currentExerciseCard.querySelector('.exercise-notes');
-    const notes = exerciseNotesInput.value.trim();
+    const notesContainer = targetCard.querySelector('.exercise-notes');
+    const exerciseName = targetCard.querySelector('.exercise-title')?.textContent || 'this exercise';
+    const notesContent = typeof notes === 'string' ? notes : exerciseNotesInput.value.trim();
     
-    if (notes) {
-        notesContainer.innerHTML = `
-            <div class="notes-header fw-bold mb-2">Notes on ${currentExerciseCard.querySelector('h4')?.textContent || 'this exercise'}:</div>
-            <div class="notes-content">${notes.replace(/\n/g, '<br>')}</div>
-        `;
+    // Clear existing content but preserve the header if it exists
+    const existingHeader = notesContainer.querySelector('.notes-header');
+    notesContainer.innerHTML = '';
+    
+    if (notesContent) {
+        // Add header
+        const header = document.createElement('div');
+        header.className = 'notes-header fw-bold mb-2';
+        header.textContent = `Notes for ${exerciseName}:`;
+        
+        // Add notes content
+        const content = document.createElement('div');
+        content.className = 'notes-content';
+        content.innerHTML = notesContent.replace(/\n/g, '<br>');
+        
+        // Append elements
+        notesContainer.appendChild(header);
+        notesContainer.appendChild(content);
         notesContainer.classList.remove('d-none');
     } else {
         notesContainer.innerHTML = '';
@@ -962,33 +1089,30 @@ function printReport() {
         });
         
         // Get exercises data
-        document.querySelectorAll('.exercise-card').forEach(card => {
-            const name = card.querySelector('.exercise-header h4')?.textContent || 'Exercise';
+        document.querySelectorAll('#exercisesList > .card').forEach(card => {
+            const name = card.querySelector('.card-title')?.textContent.trim() || 'Exercise';
             const notesElement = card.querySelector('.exercise-notes');
-            const notes = notesElement ? notesElement.textContent.replace('NOTES:', '').trim() : '';
+            const notes = notesElement ? notesElement.textContent.trim() : '';
             
             const sets = [];
-            card.querySelectorAll('.sets-list .set-item').forEach(setItem => {
-                const cols = setItem.querySelectorAll('div');
-                if (cols.length >= 3) {
-                    const weight = cols[1].textContent.trim();
-                    const reps = cols[2].textContent.trim();
-                    if (weight && reps) {
-                        sets.push({
-                            weight: weight || '0',
-                            reps: reps || '0'
-                        });
-                    }
+            card.querySelectorAll('.sets-list > div').forEach((setItem, index) => {
+                const reps = setItem.querySelector('.col-3')?.textContent.trim() || '0';
+                const weight = setItem.querySelectorAll('.col-3')[1]?.textContent.trim() || '0';
+                
+                if (reps || weight) {
+                    sets.push({
+                        weight: weight,
+                        reps: reps,
+                        setNumber: index + 1
+                    });
                 }
             });
             
-            if (name || sets.length > 0) {
-                exercises.push({
-                    name,
-                    sets,
-                    notes
-                });
-            }
+            exercises.push({
+                name: name,
+                sets: sets,
+                notes: notes
+            });
         });
         
         // Create a new window with the report
@@ -1044,7 +1168,65 @@ function printReport() {
                     width: 120px;
                     background-color: #f0f0f0;
                 }
+                
+                /* Exercises Table Styles */
+                .exercises-section {
+                    margin-top: 40px;
+                }
+                .exercise-table-container {
+                    margin-bottom: 30px;
+                    page-break-inside: avoid;
+                }
+                .exercise-header {
+                    background-color: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-bottom: none;
+                    padding: 10px 15px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    text-align: left;
+                    border-top-left-radius: 4px;
+                    border-top-right-radius: 4px;
+                    margin-bottom: 0;
+                }
+                .exercise-table {
+                    width: 100%;
+                    max-width: 500px;
+                    margin: 0 0 15px 0;
+                    border: 1px solid #000;
+                    border-collapse: collapse;
+                    font-family: Arial, sans-serif;
+                }
+                .exercise-table th,
+                .exercise-table td {
+                    padding: 8px 12px;
+                    border: 1px solid #000;
+                    text-align: center;
+                }
+                .exercise-table th {
+                    background-color: #f0f0f0;
+                    font-weight: bold;
+                }
+                .exercise-notes {
+                    max-width: 500px;
+                    margin: 10px auto 0;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-left: 3px solid #2c3e50;
+                    font-size: 14px;
+                }
                 @media print {
+                    .exercise-table-container {
+                        page-break-inside: avoid;
+                    }
+                    .exercise-table {
+                        border: 1px solid #000 !important;
+                    }
+                    .exercise-table th,
+                    .exercise-table td {
+                        border: 1px solid #000 !important;
+                    }
                     body { 
                         padding: 20px;
                     }
@@ -1085,9 +1267,41 @@ function printReport() {
                     </table>
                 </div>
                 
-                <!-- Content will be added here in future updates -->
-                
-                <div class="text-center mt-4 no-print">
+                <!-- Exercises Table -->
+                <div class="exercises-section mt-5">
+                    <h3 class="text-center mb-3">Exercises</h3>
+                    ${exercises.length > 0 ? 
+                        exercises.map(exercise => `
+                            <div class="exercise-table-container mb-4" style="max-width: 500px; margin: 0 auto;">
+                                <div class="exercise-header">${exercise.name}</div>
+                                ${exercise.sets.length > 0 ? `
+                                    <table class="exercise-table" cellspacing="0" cellpadding="0">
+                                        <thead>
+                                            <tr>
+                                                <th>Set</th>
+                                                <th>Weight</th>
+                                                <th>Reps</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${exercise.sets.map((set, index) => `
+                                                <tr>
+                                                    <td>${set.setNumber || (index + 1)}</td>
+                                                    <td>${set.weight}</td>
+                                                    <td>${set.reps}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                ` : '<p class="text-muted">No sets recorded</p>'}
+                        </div>
+                        ${exercise.notes ? `
+                            <div class="exercise-notes">
+                                <strong>Notes:</strong> ${exercise.notes}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('') : '<p>No exercises recorded</p>'}
                     <button onclick="window.print()" class="btn btn-primary">
                         <i class="bi bi-printer"></i> Print Report
                     </button>
