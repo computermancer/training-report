@@ -1,0 +1,41 @@
+/* Fade animations */
+.fade-out {
+    opacity: 0;
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    pointer-events: none;
+    height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0;
+    }
+    to { 
+        opacity: 1;
+    }
+}
+
+/* Ensure the card maintains its layout during transition */
+.card {
+    transition: all 0.3s ease-out;
+}
+
+/* Initial state for the report section */
+#reportSection.d-none {
+    display: none !important;
+}
+
+/* Make sure the container doesn't collapse during transitions */
+.container {
+    min-height: 100vh;
+    position: relative;
+}

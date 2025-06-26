@@ -112,7 +112,7 @@ function initializeApp() {
     }
     
     if (printReportBtn) {
-        printReportBtn.addEventListener('click', generateReport);
+        printReportBtn.addEventListener('click', printReport);
     }
     
     // Initialize modals
@@ -755,6 +755,8 @@ function setupClientNotes() {
 }
 
 function createReport() {
+    console.log('createReport function called');
+    
     if (!clientNameInput || !trainerNameInput || !dateInput || !reportClientName || !reportTrainerName || !reportDate) {
         alert('Please fill in all required fields');
         return;
@@ -763,20 +765,74 @@ function createReport() {
     // Update report info
     updateReportInfo(clientNameInput.value, trainerNameInput.value, dateInput.value);
     
-    // Show report section
+    // Get the initial card and report section
+    const initialCard = document.querySelector('.info-card');
+    console.log('Initial card element:', initialCard);
+    
+    // First, prepare the report section (hidden but taking up space)
     if (reportSection) {
+        reportSection.style.visibility = 'hidden';
+        reportSection.style.position = 'absolute';
+        reportSection.style.opacity = '0';
+        reportSection.style.width = '100%';
         reportSection.classList.remove('d-none');
-        reportSection.scrollIntoView({ behavior: 'smooth' });
     }
+    
+    if (initialCard) {
+        console.log('Starting fade out animation for initial card');
+        // Start the fade out animation
+        initialCard.style.transition = 'opacity 0.3s ease-out, height 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out';
+        
+        // Apply the fade out
+        initialCard.style.opacity = '0';
+        initialCard.style.height = '0';
+        initialCard.style.margin = '0';
+        initialCard.style.padding = '0';
+        initialCard.style.overflow = 'hidden';
+        
+        // After the animation completes, hide the element completely
+        // and show the report section
+        setTimeout(() => {
+            initialCard.classList.add('d-none');
+            console.log('Initial card hidden');
+            
+            if (reportSection) {
+                reportSection.style.removeProperty('position');
+                reportSection.style.removeProperty('visibility');
+                reportSection.style.opacity = '0';
+                
+                // Trigger reflow
+                void reportSection.offsetWidth;
+                
+                // Fade in the report section
+                reportSection.style.transition = 'opacity 0.3s ease-in';
+                reportSection.style.opacity = '1';
+            }
+        }, 300);
+    } else {
+        console.log('Could not find initial card element');
+        // If no initial card, just show the report section
+        if (reportSection) {
+            reportSection.classList.remove('d-none');
+            reportSection.style.opacity = '1';
+        }
+    }
+
     
     // Show client notes section
     if (clientNotesSection) {
+        console.log('Showing client notes section');
         clientNotesSection.classList.remove('d-none');
+    } else {
+        console.log('Client notes section not found');
     }
     
     // Show print button
     if (printReportBtn) {
+        console.log('Showing print button');
         printReportBtn.classList.remove('d-none');
+    } else {
+        console.log('Print button not found');
     }
 }
 
@@ -875,9 +931,9 @@ function setupReportInfoEditing() {
 function printReport() {
     try {
         // Get client and trainer info
-        const clientName = reportClientName.textContent;
-        const trainerName = reportTrainerName.textContent;
-        const date = dateInput.value;
+        const clientName = document.getElementById('reportClientName').textContent || 'Client Name';
+        const trainerName = document.getElementById('reportTrainerName').textContent || 'Trainer Name';
+        const date = document.getElementById('reportDate').textContent || new Date().toLocaleDateString();
         
         // Get all exercises data
         const exercises = [];
@@ -887,7 +943,7 @@ function printReport() {
         document.querySelectorAll('#clientNotesList .card').forEach(noteCard => {
             const title = noteCard.querySelector('.card-title')?.textContent.trim() || '';
             const content = noteCard.querySelector('.card-text')?.textContent.trim() || '';
-            const timestamp = noteCard.querySelector('.text-muted')?.textContent.trim() || new Date().toISOString();
+            const timestamp = noteCard.querySelector('.text-muted')?.textContent.trim() || new Date().toLocaleString();
             
             clientNotes.push({
                 title,
@@ -896,8 +952,9 @@ function printReport() {
             });
         });
         
+        // Get exercises data
         document.querySelectorAll('.exercise-card').forEach(card => {
-            const name = card.querySelector('.exercise-header h4').textContent;
+            const name = card.querySelector('.exercise-header h4')?.textContent || 'Exercise';
             const notesElement = card.querySelector('.exercise-notes');
             const notes = notesElement ? notesElement.textContent.replace('NOTES:', '').trim() : '';
             
@@ -907,41 +964,137 @@ function printReport() {
                 if (cols.length >= 3) {
                     const weight = cols[1].textContent.trim();
                     const reps = cols[2].textContent.trim();
-                    sets.push({
-                        weight: weight || '0',
-                        reps: reps || '0'
-                    });
+                    if (weight && reps) {
+                        sets.push({
+                            weight: weight || '0',
+                            reps: reps || '0'
+                        });
+                    }
                 }
             });
             
-            exercises.push({
-                name,
-                sets,
-                notes
-            });
+            if (name || sets.length > 0) {
+                exercises.push({
+                    name,
+                    sets,
+                    notes
+                });
+            }
         });
         
-        // Prepare report data
-        const reportData = {
-            clientName,
-            trainerName,
-            date,
-            exercises,
-            clientNotes: clientNotes.length > 0 ? clientNotes : undefined
-        };
-        
-        console.log('Report data to be sent:', reportData); // Debug log
-        
-        // Encode the data for URL
-        const encodedData = encodeURIComponent(JSON.stringify(reportData));
-        
-        // Open print template in a new tab with the data in the URL hash
-        const printWindow = window.open(`print-template.html#data=${encodedData}`, '_blank');
-        
-        // Focus on the new window
-        if (printWindow) {
-            printWindow.focus();
+        // Create a new window with the report
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            throw new Error('Popup was blocked. Please allow popups for this site.');
         }
+        
+        // Generate the HTML for the report
+        let reportHTML = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Training Report - ${clientName}</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+            <style>
+                body { padding: 20px; font-family: Arial, sans-serif; }
+                .report-header { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+                .exercise { margin-bottom: 20px; }
+                .exercise-header { font-weight: bold; margin-bottom: 10px; }
+                .set { margin-left: 20px; margin-bottom: 5px; }
+                .notes { margin-top: 10px; font-style: italic; color: #666; }
+                .client-notes { margin-top: 30px; }
+                .signature-line { border-top: 1px solid #000; width: 200px; margin: 50px 0 10px; }
+                @media print {
+                    body { padding: 0; }
+                    .no-print { display: none !important; }
+                    .page-break { page-break-after: always; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="report-header text-center mb-4">
+                    <h2>Training Report</h2>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Client:</strong> ${clientName}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Trainer:</strong> ${trainerName}
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Date:</strong> ${date}
+                        </div>
+                    </div>
+                </div>
+                
+                <h4>Exercises</h4>
+                ${exercises.length > 0 ? 
+                    exercises.map(exercise => `
+                        <div class="exercise">
+                            <div class="exercise-header">${exercise.name}</div>
+                            ${exercise.sets.length > 0 ? 
+                                `<div class="sets">
+                                    ${exercise.sets.map((set, index) => 
+                                        `<div class="set">Set ${index + 1}: ${set.weight} x ${set.reps}</div>`
+                                    ).join('')}
+                                </div>` : ''
+                            }
+                            ${exercise.notes ? `<div class="notes">Notes: ${exercise.notes}</div>` : ''}
+                        </div>
+                    `).join('') : 
+                    '<p>No exercises recorded.</p>'
+                }
+                
+                ${clientNotes.length > 0 ? `
+                    <div class="client-notes">
+                        <h4>Client Notes</h4>
+                        ${clientNotes.map(note => `
+                            <div class="note mb-3">
+                                <strong>${note.title || 'Note'}</strong>
+                                <div>${note.content}</div>
+                                <small class="text-muted">${note.timestamp}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                <div class="signature-section mt-5">
+                    <div class="signature-line"></div>
+                    <div>Trainer's Signature</div>
+                </div>
+                
+                <div class="signature-section mt-5">
+                    <div class="signature-line"></div>
+                    <div>Client's Signature</div>
+                </div>
+                
+                <div class="text-center mt-4 no-print">
+                    <button onclick="window.print()" class="btn btn-primary">
+                        <i class="bi bi-printer"></i> Print Report
+                    </button>
+                </div>
+            </div>
+            
+            <script>
+                // Removed auto-print functionality
+                // Print will only happen when the user clicks the print button
+                
+                // Optional: Add a close button handler
+                function closeWindow() {
+                    window.close();
+                }
+            </script>
+        </body>
+        </html>`;
+
+        // Write the HTML to the new window
+        printWindow.document.open();
+        printWindow.document.write(reportHTML);
+        printWindow.document.close();
         
     } catch (error) {
         console.error('Error generating report:', error);
