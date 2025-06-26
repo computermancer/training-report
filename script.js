@@ -286,7 +286,7 @@ function saveExercise() {
                             Add Sets/Reps/Weight
                         </button>
                         <button class="btn btn-sm btn-outline-secondary add-notes-btn me-2" title="Add exercise notes">
-                            <i class="bi bi-pencil">📝</i> Notes
+                            <i class="bi bi-pencil"></i> Add Notes
                         </button>
                         <button class="btn btn-sm btn-outline-danger delete-exercise" title="Remove exercise">
                             <i class="bi bi-trash">🗑️</i>
@@ -610,8 +610,17 @@ function saveExerciseNotes(notes, exerciseCard = null) {
     if (!targetCard || !exerciseNotesInput) return;
     
     const notesContainer = targetCard.querySelector('.exercise-notes');
+    const notesButton = targetCard.querySelector('.add-notes-btn');
     const exerciseName = targetCard.querySelector('.exercise-title')?.textContent || 'this exercise';
     const notesContent = typeof notes === 'string' ? notes : exerciseNotesInput.value.trim();
+    
+    // Update notes button text based on whether we have notes
+    if (notesButton) {
+        const icon = notesButton.querySelector('i');
+        notesButton.innerHTML = '';
+        notesButton.appendChild(icon);
+        notesButton.appendChild(document.createTextNode(notesContent ? ' Edit Notes' : ' Add Notes'));
+    }
     
     // Clear existing content but preserve the header if it exists
     const existingHeader = notesContainer.querySelector('.notes-header');
