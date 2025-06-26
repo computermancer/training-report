@@ -281,15 +281,15 @@ function saveExercise() {
                             <button class="btn btn-sm btn-outline-secondary cancel-edit">Cancel</button>
                         </div>
                     </div>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-primary add-sets-btn me-2" title="Add sets">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-primary add-sets-btn" title="Add sets">
                             Add Sets/Reps/Weight
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary add-notes-btn me-2" title="Add exercise notes">
+                        <button class="btn btn-sm btn-outline-secondary add-notes-btn" title="Add exercise notes">
                             <i class="bi bi-pencil"></i> Add Notes
                         </button>
                         <button class="btn btn-sm btn-outline-danger delete-exercise" title="Remove exercise">
-                            <i class="bi bi-trash">🗑️</i>
+                            Remove Exercise
                         </button>
                     </div>
                 </div>
@@ -509,12 +509,12 @@ function saveSets() {
             <div class="col-2 set-sets">${setsCount || '1'}</div>
             <div class="col-3 set-reps">${reps || '-'}</div>
             <div class="col-3 set-weight">${weight || '-'}</div>
-            <div class="ms-auto">
-                <button class="btn btn-sm btn-outline-secondary edit-set me-1" title="Edit set">
-                    <i class="bi bi-pencil">✏️</i>
+            <div class="ms-auto d-flex gap-1">
+                <button class="btn btn-sm btn-outline-primary edit-set" title="Edit set">
+                    <i class="bi bi-pencil"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-danger delete-set" title="Delete set">
-                    <i class="bi bi-trash">🗑️</i>
+                    <i class="bi bi-trash"></i>
                 </button>
             </div>
         `;
@@ -616,10 +616,11 @@ function saveExerciseNotes(notes, exerciseCard = null) {
     
     // Update notes button text based on whether we have notes
     if (notesButton) {
-        const icon = notesButton.querySelector('i');
-        notesButton.innerHTML = '';
-        notesButton.appendChild(icon);
-        notesButton.appendChild(document.createTextNode(notesContent ? ' Edit Notes' : ' Add Notes'));
+        if (notesContent) {
+            notesButton.classList.add('d-none');
+        } else {
+            notesButton.classList.remove('d-none');
+        }
     }
     
     // Clear existing content but preserve the header if it exists
@@ -627,10 +628,48 @@ function saveExerciseNotes(notes, exerciseCard = null) {
     notesContainer.innerHTML = '';
     
     if (notesContent) {
-        // Add header
+        // Add header with action buttons
         const header = document.createElement('div');
-        header.className = 'notes-header fw-bold mb-2';
-        header.textContent = `Notes for ${exerciseName}:`;
+        header.className = 'notes-header d-flex justify-content-between align-items-center mb-2';
+        
+        const headerText = document.createElement('span');
+        headerText.className = 'fw-bold';
+        headerText.textContent = `Notes for ${exerciseName}:`;
+        
+        // Create button group
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'btn-group';
+        
+        // Edit button
+        const editButton = document.createElement('button');
+        editButton.className = 'btn btn-sm btn-outline-primary';
+        editButton.title = 'Edit notes';
+        editButton.innerHTML = '<i class="bi bi-pencil"></i>';
+        editButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentExerciseCard = targetCard;
+            exerciseNotesInput.value = notesContent;
+            if (notesModal) notesModal.show();
+        });
+        
+        // Delete button
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn btn-sm btn-outline-danger';
+        deleteButton.title = 'Delete notes';
+        deleteButton.innerHTML = '<i class="bi bi-trash"></i>';
+        deleteButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Are you sure you want to delete these notes?')) {
+                saveExerciseNotes('', targetCard);
+                if (notesButton) notesButton.classList.remove('d-none');
+            }
+        });
+        
+        buttonGroup.appendChild(editButton);
+        buttonGroup.appendChild(deleteButton);
+        
+        header.appendChild(headerText);
+        header.appendChild(buttonGroup);
         
         // Add notes content
         const content = document.createElement('div');
@@ -752,10 +791,10 @@ function setupClientNotes() {
                         <h5 class="card-title mb-0">${note.title || 'Untitled Note'}</h5>
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-primary edit-note" data-id="${index}">
-                                <i class="bi bi-pencil">✏️</i>
+                                <i class="bi bi-pencil"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger delete-note" data-id="${index}">
-                                <i class="bi bi-trash">🗑️</i>
+                                <i class="bi bi-trash"></i>
                             </button>
                         </div>
                     </div>

@@ -49,18 +49,22 @@
                         <h3 class="mb-0">Training Report</h3>
                     </div>
                     <div>
-                        <button id="printReportBtn" class="btn btn-outline-primary btn-sm" style="width: 180px;">
+                        <button id="printReportBtn" class="btn btn-sm shadow-sm" style="width: 180px; background-color: #6f42c1; color: white; border: 1px solid white; box-shadow: 0 0 0 4px #6f42c1;">
                             <i class="bi bi-printer"></i>&nbsp;Print Report
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="report-info mb-4 position-relative">
-                        <button id="editReportInfoBtn" class="btn btn-sm btn-outline-secondary position-absolute" style="top: 0; right: 0;" title="Edit client info">
-                            <i class="bi bi-pencil">✏️</i> Edit
-                        </button>
+                    <div class="report-info mb-4">
                         <div id="reportInfoDisplay">
-                            <p><strong>Client:</strong> <span id="reportClientName"></span></p>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <strong>Client:</strong> <span id="reportClientName"></span>
+                                </div>
+                                <button id="editReportInfoBtn" class="btn btn-sm btn-outline-secondary" style="width: 180px;" title="Edit client info">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </button>
+                            </div>
                             <p><strong>Trainer:</strong> <span id="reportTrainerName"></span></p>
                             <p><strong>Date:</strong> <span id="reportDate"></span></p>
                         </div>
