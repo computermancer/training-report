@@ -154,11 +154,24 @@ function initializeApp() {
         const newSaveSetsBtn = saveSetsBtn.cloneNode(true);
         saveSetsBtn.parentNode.replaceChild(newSaveSetsBtn, saveSetsBtn);
         saveSetsBtn = newSaveSetsBtn;
+        
+        // Add new listener
         saveSetsBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            console.log('Save sets button clicked');
             saveSets();
         });
+        
+        // Also handle form submission if the button is inside a form
+        const form = saveSetsBtn.closest('form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('Form submitted');
+                saveSets();
+            });
+        }
     }
     
     if (saveNotesBtn) {
@@ -328,8 +341,11 @@ function saveExercise() {
     }
 }
 
-function saveSets(isEdit = false, setItemToEdit = null) {
-    console.log('saveSets called with isEdit:', isEdit, 'setItemToEdit:', setItemToEdit);
+// Global variable to track the set being edited
+let currentEditingSet = null;
+
+function saveSets() {
+    console.log('saveSets called');
     if (!currentExerciseCard) {
         console.error('No current exercise card');
         return;
@@ -346,24 +362,31 @@ function saveSets(isEdit = false, setItemToEdit = null) {
     
     console.log('Form values:', { setsCount, reps, weight });
     
-    const setsList = currentExerciseCard.querySelector('.sets-list');
+    let setsList = currentExerciseCard.querySelector('.sets-list');
     
-    if (isEdit && setItemToEdit) {
-        console.log('Updating existing set:', setItemToEdit);
-        // Update existing set
-        const setsCell = setItemToEdit.querySelector('.set-sets');
-        const repsCell = setItemToEdit.querySelector('.set-reps');
-        const weightCell = setItemToEdit.querySelector('.set-weight');
+    // If sets list doesn't exist, create it
+    if (!setsList) {
+        setsList = document.createElement('div');
+        setsList.className = 'sets-list';
+        currentExerciseCard.appendChild(setsList);
+    }
+    
+    if (currentEditingSet) {
+        console.log('Updating existing set:', currentEditingSet);
+        
+        // Update the existing set directly
+        const setsCell = currentEditingSet.querySelector('.set-sets');
+        const repsCell = currentEditingSet.querySelector('.set-reps');
+        const weightCell = currentEditingSet.querySelector('.set-weight');
         
         if (setsCell) setsCell.textContent = setsCount || '1';
         if (repsCell) repsCell.textContent = reps || '-';
         if (weightCell) weightCell.textContent = weight || '-';
         
-        console.log('Updated set values:', {
-            sets: setsCell?.textContent,
-            reps: repsCell?.textContent,
-            weight: weightCell?.textContent
-        });
+        console.log('Updated set with new values:', { setsCount, reps, weight });
+        
+        // Clear the editing reference
+        currentEditingSet = null;
     } else {
         console.log('Creating new set');
         // Create a new set item
@@ -392,15 +415,31 @@ function saveSets(isEdit = false, setItemToEdit = null) {
     
     // Reset form and close modal
     if (setsModal) {
+        console.log('Hiding sets modal');
         // Hide the modal first to prevent any further interactions
-        setsModal.hide();
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('setModal'));
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            setsModal.hide();
+        }
         
         // Reset form fields after a small delay to ensure modal is hidden
         setTimeout(() => {
+            console.log('Resetting form fields');
             // Clear the form for next use
             if (setsCountInput) setsCountInput.value = '';
             if (repsInput) repsInput.value = '';
             if (weightInput) weightInput.value = '';
+            
+            // Reset the save button text for next use
+            const saveBtn = document.getElementById('saveSetsBtn');
+            if (saveBtn) {
+                saveBtn.textContent = 'Add Set';
+            }
+            
+            // Reset the current editing set
+            currentEditingSet = null;
         }, 100);
     }
 }
@@ -421,49 +460,17 @@ function setupSetItemListeners(setItem) {
             if (repsInput) repsInput.value = reps === '-' ? '' : reps;
             if (weightInput) weightInput.value = weight === '-' ? '' : weight;
             
-            // Store the row we're editing in the modal's data
-            const modal = document.getElementById('setModal');
+            // Store the row we're editing in the global variable
+            currentEditingSet = row;
+            
+            // Change the save button text
+            const saveBtn = document.getElementById('saveSetsBtn');
+            if (saveBtn) {
+                saveBtn.textContent = 'Update Set';
+            }
             
             // Show the modal
             if (setsModal) {
-                // Change the save button to update mode
-                const saveBtn = document.getElementById('saveSetsBtn');
-                const originalText = saveBtn.textContent;
-                
-                // Store the original onclick handler
-                const originalOnClick = saveBtn.onclick;
-                
-                // Create a new click handler for updating
-                const updateHandler = (e) => {
-                    e.preventDefault();
-                    saveSets(true, row);
-                    // Reset the button
-                    saveBtn.textContent = originalText;
-                    saveBtn.onclick = originalOnClick;
-                    // Clear modal data
-                    if (setsModal) setsModal.hide();
-                };
-                
-                // Update the button
-                saveBtn.textContent = 'Update Set';
-                saveBtn.onclick = updateHandler;
-                
-                // Handle modal close
-                const handleModalHide = () => {
-                    saveBtn.textContent = originalText;
-                    saveBtn.onclick = originalOnClick;
-                    modal.removeEventListener('hidden.bs.modal', handleModalHide);
-                    
-                    // Reset form fields
-                    if (setsCountInput) setsCountInput.value = '';
-                    if (repsInput) repsInput.value = '';
-                    if (weightInput) weightInput.value = '';
-                };
-                
-                // Add the event listener for when modal is hidden
-                modal.addEventListener('hidden.bs.modal', handleModalHide);
-                
-                // Show the modal
                 setsModal.show();
             }
         });
@@ -841,10 +848,12 @@ function updateReportInfo(clientName, trainerName, dateString) {
     reportClientName.textContent = clientName;
     reportTrainerName.textContent = trainerName;
     
-    // Format date
+    // Format date - use the input string directly to avoid timezone issues
     const date = new Date(dateString);
+    // Adjust for timezone offset to prevent date shifting
+    const adjustedDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    reportDate.textContent = date.toLocaleDateString('en-US', options);
+    reportDate.textContent = adjustedDate.toLocaleDateString('en-US', options);
     
     // Update the original input fields for form submission
     if (clientNameInput) clientNameInput.value = clientName;
