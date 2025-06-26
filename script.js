@@ -1004,82 +1004,88 @@ function printReport() {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Training Report - ${clientName}</title>
+            <title>Training Session Report - ${clientName}</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
             <style>
-                body { padding: 20px; font-family: Arial, sans-serif; }
-                .report-header { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-                .exercise { margin-bottom: 20px; }
-                .exercise-header { font-weight: bold; margin-bottom: 10px; }
-                .set { margin-left: 20px; margin-bottom: 5px; }
-                .notes { margin-top: 10px; font-style: italic; color: #666; }
-                .client-notes { margin-top: 30px; }
-                .signature-line { border-top: 1px solid #000; width: 200px; margin: 50px 0 10px; }
+                body { 
+                    padding: 40px 20px; 
+                    font-family: Arial, sans-serif; 
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
+                .report-header { 
+                    margin-bottom: 30px;
+                    text-align: left;
+                }
+                .session-title {
+                    font-size: 28px;
+                    font-weight: bold;
+                    margin-bottom: 20px;
+                    color: #333;
+                    text-align: center;
+                }
+                .info-table {
+                    width: 100%;
+                    max-width: 500px;
+                    margin: 0 auto;
+                    border: 1px solid #000;
+                    border-collapse: collapse;
+                    font-family: Arial, sans-serif;
+                }
+                .info-table tr {
+                    height: 40px;
+                }
+                .info-table td {
+                    padding: 8px 15px;
+                    border: 1px solid #000;
+                }
+                .info-table td:first-child {
+                    font-weight: bold;
+                    width: 120px;
+                    background-color: #f0f0f0;
+                }
                 @media print {
-                    body { padding: 0; }
-                    .no-print { display: none !important; }
-                    .page-break { page-break-after: always; }
+                    body { 
+                        padding: 20px;
+                    }
+                    .no-print { 
+                        display: none !important; 
+                    }
+                    .info-table {
+                        border: 1px solid #000 !important;
+                    }
+                    .info-table td {
+                        border: 1px solid #000 !important;
+                    }
+                    .info-table td:first-child {
+                        background-color: #f0f0f0 !important;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
                 }
             </style>
         </head>
         <body>
             <div class="container">
-                <div class="report-header text-center mb-4">
-                    <h2>Training Report</h2>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <strong>Client:</strong> ${clientName}
-                        </div>
-                        <div class="col-md-4">
-                            <strong>Trainer:</strong> ${trainerName}
-                        </div>
-                        <div class="col-md-4">
-                            <strong>Date:</strong> ${date}
-                        </div>
-                    </div>
+                <div class="report-header">
+                    <div class="session-title">Training Session Report</div>
+                    <table class="info-table" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td>Client:</td>
+                            <td>${clientName}</td>
+                        </tr>
+                        <tr>
+                            <td>Trainer:</td>
+                            <td>${trainerName}</td>
+                        </tr>
+                        <tr>
+                            <td>Date:</td>
+                            <td>${date}</td>
+                        </tr>
+                    </table>
                 </div>
                 
-                <h4>Exercises</h4>
-                ${exercises.length > 0 ? 
-                    exercises.map(exercise => `
-                        <div class="exercise">
-                            <div class="exercise-header">${exercise.name}</div>
-                            ${exercise.sets.length > 0 ? 
-                                `<div class="sets">
-                                    ${exercise.sets.map((set, index) => 
-                                        `<div class="set">Set ${index + 1}: ${set.weight} x ${set.reps}</div>`
-                                    ).join('')}
-                                </div>` : ''
-                            }
-                            ${exercise.notes ? `<div class="notes">Notes: ${exercise.notes}</div>` : ''}
-                        </div>
-                    `).join('') : 
-                    '<p>No exercises recorded.</p>'
-                }
-                
-                ${clientNotes.length > 0 ? `
-                    <div class="client-notes">
-                        <h4>Client Notes</h4>
-                        ${clientNotes.map(note => `
-                            <div class="note mb-3">
-                                <strong>${note.title || 'Note'}</strong>
-                                <div>${note.content}</div>
-                                <small class="text-muted">${note.timestamp}</small>
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : ''}
-                
-                <div class="signature-section mt-5">
-                    <div class="signature-line"></div>
-                    <div>Trainer's Signature</div>
-                </div>
-                
-                <div class="signature-section mt-5">
-                    <div class="signature-line"></div>
-                    <div>Client's Signature</div>
-                </div>
+                <!-- Content will be added here in future updates -->
                 
                 <div class="text-center mt-4 no-print">
                     <button onclick="window.print()" class="btn btn-primary">
@@ -1089,10 +1095,7 @@ function printReport() {
             </div>
             
             <script>
-                // Removed auto-print functionality
                 // Print will only happen when the user clicks the print button
-                
-                // Optional: Add a close button handler
                 function closeWindow() {
                     window.close();
                 }
