@@ -282,13 +282,13 @@ function saveExercise() {
                         </div>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-primary add-sets-btn" title="Add sets">
-                            Add Sets/Reps/Weight
+                        <button class="btn btn-sm btn-outline-primary add-sets-btn">
+                            <i class="bi bi-plus-circle"></i> Add Sets/Reps
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary add-notes-btn" title="Add exercise notes">
+                        <button class="btn btn-sm btn-outline-secondary add-notes-btn">
                             <i class="bi bi-pencil"></i> Add Notes
                         </button>
-                        <button class="btn btn-sm btn-outline-danger delete-exercise" title="Remove exercise">
+                        <button class="btn btn-sm btn-outline-danger delete-exercise">
                             Remove Exercise
                         </button>
                     </div>
@@ -296,11 +296,11 @@ function saveExercise() {
             </div>
             <div class="p-3">
                 <div class="sets-container">
-                    <div class="set-header d-flex text-muted small mb-2">
+                    <div class="set-header d-flex align-items-center text-muted small mb-2">
                         <div class="col-2">Sets</div>
                         <div class="col-3">Reps</div>
                         <div class="col-3">Weight</div>
-                        <div class="ms-auto">Actions</div>
+                        <div class="ms-auto pe-3">Actions</div>
                     </div>
                     <div class="sets-list">
                         <!-- Sets will be added here -->
@@ -486,14 +486,26 @@ function saveSets() {
     if (currentEditingSet) {
         console.log('Updating existing set:', currentEditingSet);
         
-        // Update the existing set directly
-        const setsCell = currentEditingSet.querySelector('.set-sets');
-        const repsCell = currentEditingSet.querySelector('.set-reps');
-        const weightCell = currentEditingSet.querySelector('.set-weight');
+        // Update the existing set by replacing its content
+        currentEditingSet.className = 'set-item d-flex align-items-center mb-2';
+        currentEditingSet.innerHTML = `
+            <div class="col-2 set-sets">${setsCount || '1'}</div>
+            <div class="col-3 set-reps">${reps || '-'}</div>
+            <div class="col-3 set-weight">${weight || '-'}</div>
+            <div class="ms-auto pe-2">
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary edit-set" title="Edit set">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-set" title="Delete set">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
         
-        if (setsCell) setsCell.textContent = setsCount || '1';
-        if (repsCell) repsCell.textContent = reps || '-';
-        if (weightCell) weightCell.textContent = weight || '-';
+        // Reattach event listeners
+        setupSetItemListeners(currentEditingSet);
         
         console.log('Updated set with new values:', { setsCount, reps, weight });
         
@@ -509,13 +521,15 @@ function saveSets() {
             <div class="col-2 set-sets">${setsCount || '1'}</div>
             <div class="col-3 set-reps">${reps || '-'}</div>
             <div class="col-3 set-weight">${weight || '-'}</div>
-            <div class="ms-auto d-flex gap-1">
-                <button class="btn btn-sm btn-outline-primary edit-set" title="Edit set">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger delete-set" title="Delete set">
-                    <i class="bi bi-trash"></i>
-                </button>
+            <div class="ms-auto pe-2">
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary edit-set" title="Edit set">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-set" title="Delete set">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             </div>
         `;
         
@@ -790,10 +804,10 @@ function setupClientNotes() {
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">${note.title || 'Untitled Note'}</h5>
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary edit-note" data-id="${index}">
+                            <button class="btn btn-sm btn-outline-primary edit-note" data-id="${index}" title="Edit note">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger delete-note" data-id="${index}">
+                            <button class="btn btn-sm btn-outline-danger delete-note" data-id="${index}" title="Delete note">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>

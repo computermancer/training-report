@@ -137,6 +137,21 @@ body {
     white-space: pre-wrap;
 }
 
+/* Print report button */
+#printReportBtn {
+    transition: all 0.2s ease-in-out;
+}
+
+#printReportBtn:hover {
+    background-color: #6f42c1 !important;
+    color: white !important;
+    transform: translateY(-1px);
+}
+
+#printReportBtn:active {
+    transform: translateY(0);
+}
+
 /* Client Notes Section */
 .client-notes-section {
     margin-top: 2rem;
@@ -200,27 +215,6 @@ body {
 }
 
 /* Delete buttons */
-.delete-set {
-    color: #dc3545;
-    background: none;
-    border: none;
-    font-size: 1.1rem;
-    line-height: 1;
-    padding: 0 0.25rem;
-    opacity: 0.7;
-    transition: all 0.2s;
-}
-
-.delete-set:hover {
-    opacity: 1;
-    transform: scale(1.1);
-    color: #dc3545;
-}
-
-.delete-set:hover {
-    color: #dc3545;
-}
-
 /* Make sure the delete buttons are properly aligned */
 .exercise-header > div {
     display: flex;
@@ -255,8 +249,7 @@ body {
     transform: translateY(-2px);
 }
 
-.delete-exercise {
-    /* Match other buttons in the row */
+.delete-set {
     font-size: 0.8rem;
     line-height: 1.25;  /* Match Bootstrap's btn-sm line height */
     padding: 0.25rem 0.5rem;  /* Match Bootstrap's btn-sm padding */
@@ -266,9 +259,17 @@ body {
     height: 31.5px;  /* Match Bootstrap's btn-sm height */
 }
 
-.delete-exercise:hover {
-    box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);  /* Red glow effect */
-    transform: translateY(-1px);  /* Slight lift effect */
+
+
+.delete-exercise {
+    /* Match other buttons in the row */
+    font-size: 0.8rem;
+    line-height: 1.25;  /* Match Bootstrap's btn-sm line height */
+    padding: 0.25rem 0.5rem;  /* Match Bootstrap's btn-sm padding */
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    height: 31.5px;  /* Match Bootstrap's btn-sm height */
 }
 
 .modal-content {
