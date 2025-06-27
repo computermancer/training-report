@@ -449,11 +449,11 @@ function saveExercise() {
                     if (notesContent) {
                         const notesText = notesContent.textContent.trim();
                         if (notesText) {
-                            // Update the notes to reflect the new exercise name
+                            // Update the notes to remove the exercise name
                             const newNotes = notesText.replace(
-                                new RegExp(`^Notes for ${escapeRegExp(oldName)}:`, 'i'), 
-                                `Notes for ${newName}:`
-                            );
+                                /^Notes for .+?:\s*/i, 
+                                ''
+                            ).trim();
                             notesContent.textContent = newNotes;
                         }
                     }
@@ -466,9 +466,9 @@ function saveExercise() {
                         // Update notes in the exercise object if they exist
                         if (exercise.notes) {
                             exercise.notes = exercise.notes.replace(
-                                new RegExp(`^Notes for ${escapeRegExp(oldName)}:`, 'i'),
-                                `Notes for ${newName}:`
-                            );
+                                /^Notes for .+?:\s*/i,
+                                ''
+                            ).trim();
                         }
                     }
                 }
@@ -600,7 +600,7 @@ function saveExercise() {
         // If we have a content element, get its text content, otherwise get all text content
         const existingNotes = contentElement ? 
             contentElement.textContent.trim() : 
-            notesContainer.textContent.replace(/^Notes for .+?:\s*/, '').trim();
+            notesContainer.textContent.replace(/^Notes:\s*/, '').trim();
         exerciseNotesInput.value = existingNotes;
         notesModal.show();
     });
@@ -902,7 +902,7 @@ function saveExerciseNotes(notes, exerciseCard = null) {
         
         const headerText = document.createElement('span');
         headerText.className = 'fw-bold';
-        headerText.textContent = `Notes for ${exerciseName}:`;
+        headerText.textContent = 'Notes:';
         
         // Create button group
         const buttonGroup = document.createElement('div');
@@ -1633,9 +1633,8 @@ function printReport() {
                     font-weight: bold;
                     color: #2c3e50;
                     text-align: left;
-                    border-top-left-radius: 4px;
-                    border-top-right-radius: 4px;
                     margin-bottom: 0;
+                    border-radius: 0;
                 }
                 .exercise-table {
                     width: 100%;
@@ -1761,8 +1760,10 @@ function printReport() {
                                         ${exercise.notes ? `
                                         <tfoot>
                                             <tr>
-                                                <td colspan="3" style="text-align: left; background-color: #f8f9fa; padding: 10px 12px; border-top: ${exercise.sets.length > 0 ? '2px' : '1px'} solid #000;">
-                                                    <span class="exercise-notes-label">Notes for ${exercise.name}:</span> ${exercise.notes}
+                                                <td colspan="3" style="text-align: left; background-color: #f8f9fa; padding: 15px; border-top: ${exercise.sets.length > 0 ? '2px' : '1px'} solid #000 !important;">
+                                                    <div style="white-space: pre-line; margin: 0;">
+                                                        <strong>Notes:</strong> ${exercise.notes.replace(/\n/g, '<br>')}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         </tfoot>
