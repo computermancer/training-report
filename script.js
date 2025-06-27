@@ -121,13 +121,14 @@ function initializeApp() {
     const setsModalEl = document.getElementById('setModal');
     const notesModalEl = document.getElementById('notesModal');
 
-    // Initialize modals with accessibility in mind
+    // Initialize modals with default options
     const modalOptions = {
-        backdrop: 'static',
-        keyboard: true,  // Allow keyboard interaction
-        focus: true     // Focus trap for accessibility
+        backdrop: true,
+        keyboard: true,
+        focus: true
     };
 
+    // Initialize all modals
     if (clientNotesModalEl) {
         clientNotesModal = new bootstrap.Modal(clientNotesModalEl, modalOptions);
     }
@@ -139,64 +140,45 @@ function initializeApp() {
     }
     if (notesModalEl && exerciseNotesInput) {
         notesModal = new bootstrap.Modal(notesModalEl, modalOptions);
-        
-        // Handle focus management for notes modal
-        notesModalEl.addEventListener('shown.bs.modal', () => {
-            // Focus on the textarea when modal is shown
-            exerciseNotesInput.focus();
-        });
-        
-        // Clean up when modal is hidden
-        notesModalEl.addEventListener('hidden.bs.modal', () => {
-            // Clear any active focus
-            if (document.activeElement) {
-                document.activeElement.blur();
-            }
-        });
     }
 
-    // Add event listeners to handle accessibility for all modals
-    const modals = [
-        { el: clientNotesModalEl, name: 'clientNotesModal' },
-        { el: exerciseModalEl, name: 'exerciseModal' },
-        { el: setsModalEl, name: 'setsModal' },
-        { el: notesModalEl, name: 'notesModal' }
-    ];
-    
-    modals.forEach(({ el, name }) => {
-        if (!el) return;
+        // Set up modal accessibility
+    const setupModalAccessibility = (modalEl, modalName) => {
+        if (!modalEl) return;
         
-        // When modal is about to be shown
-        el.addEventListener('show.bs.modal', function() {
-            // Remove aria-hidden and set aria-modal
+        // When modal is shown
+        modalEl.addEventListener('shown.bs.modal', function() {
+            // Set ARIA attributes when shown
             this.removeAttribute('aria-hidden');
             this.setAttribute('aria-modal', 'true');
             
-            // Set role="dialog" for better screen reader support
-            if (!this.getAttribute('role')) {
-                this.setAttribute('role', 'dialog');
-            }
-        });
-        
-        // When modal is shown
-        el.addEventListener('shown.bs.modal', function() {
             // Focus on the first focusable element
-            const focusable = this.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            const focusable = this.querySelector('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]):not([disabled])');
             if (focusable) {
                 focusable.focus();
             }
         });
         
         // When modal is hidden
-        el.addEventListener('hidden.bs.modal', function() {
-            // Return focus to the element that triggered the modal
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            // Clean up ARIA attributes
+            this.setAttribute('aria-hidden', 'true');
+            this.removeAttribute('aria-modal');
+            
+            // Return focus to the trigger element if possible
             const triggerElement = document.activeElement;
             if (triggerElement && (triggerElement.matches('[data-bs-toggle="modal"]') || 
-                                 triggerElement.matches('[data-bs-target*="' + name + '"]'))) {
+                                 triggerElement.matches('[data-bs-target*="' + modalName + '"]'))) {
                 triggerElement.focus();
             }
         });
-    });
+    };
+    
+    // Set up all modals
+    setupModalAccessibility(clientNotesModalEl, 'clientNotesModal');
+    setupModalAccessibility(exerciseModalEl, 'exerciseModal');
+    setupModalAccessibility(setsModalEl, 'setsModal');
+    setupModalAccessibility(notesModalEl, 'notesModal');
 
     // Set default date to today
     const today = new Date().toISOString().split('T')[0];
@@ -281,15 +263,60 @@ function initializeApp() {
 }
 
 function showAddExerciseModal() {
-    if (!exerciseNameInput || !exerciseModal) return;
+    if (!exerciseNameInput) return;
+    
+    const modalElement = document.getElementById('exerciseModal');
+    if (!modalElement) return;
     
     // Reset the form
     exerciseNameInput.value = '';
     
-    // Show the modal
-    exerciseModal.show();
+    // Set up modal instance with proper event handlers
+    const modalInstance = new bootstrap.Modal(modalElement, {
+        backdrop: 'static',
+        keyboard: true,
+        focus: true
+    });
     
-    // Focus will be handled by the shown.bs.modal event
+    // Store the element that triggered the modal
+    const triggerElement = document.activeElement;
+    
+    // Handle modal shown event
+    const handleShown = () => {
+        // Set ARIA attributes when shown
+        modalElement.removeAttribute('aria-hidden');
+        modalElement.setAttribute('aria-modal', 'true');
+        
+        // Focus on the input field
+        if (exerciseNameInput) {
+            exerciseNameInput.focus();
+        }
+        
+        // Remove the event listener to prevent multiple bindings
+        modalElement.removeEventListener('shown.bs.modal', handleShown);
+    };
+    
+    // Handle modal hidden event
+    const handleHidden = () => {
+        // Clean up ARIA attributes
+        modalElement.setAttribute('aria-hidden', 'true');
+        modalElement.removeAttribute('aria-modal');
+        
+        // Return focus to the trigger element
+        if (triggerElement && typeof triggerElement.focus === 'function') {
+            triggerElement.focus();
+        }
+        
+        // Remove the event listener
+        modalElement.removeEventListener('hidden.bs.modal', handleHidden);
+    };
+    
+    // Add event listeners
+    modalElement.addEventListener('shown.bs.modal', handleShown, { once: true });
+    modalElement.addEventListener('hidden.bs.modal', handleHidden, { once: true });
+    
+    // Show the modal
+    modalInstance.show();
 }
 
 function saveExercise() {
@@ -302,8 +329,30 @@ function saveExercise() {
     const exerciseName = exerciseNameInput.value.trim();
     
     // Close the modal before creating the exercise card
-    if (exerciseModal) {
-        exerciseModal.hide();
+    const modalElement = document.getElementById('exerciseModal');
+    if (modalElement) {
+        // First, blur any focused element inside the modal
+        const focusedElement = document.activeElement;
+        if (focusedElement && modalElement.contains(focusedElement)) {
+            focusedElement.blur();
+        }
+        
+        // Then hide the modal
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) {
+            modalInstance.hide();
+        } else {
+            // If no instance exists, hide the modal manually
+            modalElement.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            const modalBackdrop = document.querySelector('.modal-backdrop');
+            if (modalBackdrop) {
+                modalBackdrop.remove();
+            }
+            // Ensure ARIA attributes are reset
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.removeAttribute('aria-modal');
+        }
     }
     
     // Create exercise card
@@ -315,7 +364,7 @@ function saveExercise() {
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center">
                         <h5 class="card-title mb-0 exercise-title">${exerciseNameInput.value}</h5>
-                        <button class="btn btn-sm btn-outline-secondary edit-exercise-name" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Edit exercise name">
+                        <button class="btn btn-sm btn-outline-secondary edit-exercise-name ms-2" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Edit exercise name">
                             <i class="bi bi-pencil" style="color: #6c757d; transition: color 0.2s;"></i>
                         </button>
                         <div class="edit-exercise-input d-none d-flex align-items-center gap-2" style="width: 100%; max-width: 100%;">
@@ -422,13 +471,25 @@ function saveExercise() {
     
     // Add sets button functionality
     addSetsBtn.addEventListener('click', () => {
+        const modalElement = document.getElementById('setModal');
+        if (!modalElement) return;
+        
         currentExerciseCard = exerciseCard;
         currentEditingSet = null; // Reset editing state
         
         // Clear all form fields before showing the modal
-        if (setsCountInput) setsCountInput.value = '3';
-        if (repsInput) repsInput.value = '10';
-        if (weightInput) weightInput.value = '';
+        if (setsCountInput) {
+            setsCountInput.value = '';
+            setsCountInput.setAttribute('autocomplete', 'off');
+        }
+        if (repsInput) {
+            repsInput.value = '';
+            repsInput.setAttribute('autocomplete', 'off');
+        }
+        if (weightInput) {
+            weightInput.value = '';
+            weightInput.setAttribute('autocomplete', 'off');
+        }
         
         // Update modal title and button text
         const modalTitle = document.getElementById('setModalLabel');
@@ -436,42 +497,60 @@ function saveExercise() {
         if (modalTitle) modalTitle.textContent = 'Add Sets';
         if (saveBtn) saveBtn.textContent = 'Add Sets';
         
-        // Show the modal
-        if (setsModal) {
-            setsModal.show();
+        // Set up modal instance with proper event handlers
+        const modalInstance = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true,
+            focus: true
+        });
+        
+        // Store the element that triggered the modal
+        const triggerElement = document.activeElement;
+        
+        // Handle modal shown event
+        const handleShown = () => {
+            // Set ARIA attributes when shown
+            modalElement.removeAttribute('aria-hidden');
+            modalElement.setAttribute('aria-modal', 'true');
             
-            // Focus on the sets count input after the modal is shown
-            const handleShown = () => {
-                if (setsCountInput) {
+            // Focus on the sets count input
+            if (setsCountInput) {
+                setTimeout(() => {
                     setsCountInput.focus();
                     setsCountInput.select();
-                }
-                // Remove the event listener to prevent multiple bindings
-                const setsModalEl = document.getElementById('setModal');
-                if (setsModalEl) {
-                    setsModalEl.removeEventListener('shown.bs.modal', handleShown);
-                }
-            };
-            
-            // Add event listener for when modal is shown
-            const setsModalEl = document.getElementById('setModal');
-            if (setsModalEl) {
-                setsModalEl.addEventListener('shown.bs.modal', handleShown);
-            } else {
-                // Fallback in case the event listener doesn't work
-                setTimeout(() => {
-                    if (setsCountInput) {
-                        // Set default values only if fields are empty
-                        if (!setsCountInput.value) setsCountInput.value = '3';
-                        if (!repsInput.value) repsInput.value = '10';
-                        if (weightInput) weightInput.value = '';
-                        
-                        setsCountInput.focus();
-                        setsCountInput.select();
-                    }
-                }, 100);
+                }, 50);
             }
-        }
+        };
+        
+        // Handle modal hidden event
+        const handleHidden = () => {
+            // Clean up ARIA attributes
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.removeAttribute('aria-modal');
+            
+            // Blur any focused element inside the modal
+            const focusedElement = document.activeElement;
+            if (focusedElement && modalElement.contains(focusedElement)) {
+                focusedElement.blur();
+            }
+            
+            // Return focus to the trigger element
+            if (triggerElement && typeof triggerElement.focus === 'function') {
+                triggerElement.focus();
+            }
+            
+            // Clear form fields
+            if (setsCountInput) setsCountInput.value = '';
+            if (repsInput) repsInput.value = '';
+            if (weightInput) weightInput.value = '';
+        };
+        
+        // Add event listeners
+        modalElement.addEventListener('shown.bs.modal', handleShown, { once: true });
+        modalElement.addEventListener('hidden.bs.modal', handleHidden, { once: true });
+        
+        // Show the modal
+        modalInstance.show();
     });
     
     // Add notes button functionality
@@ -554,7 +633,10 @@ function saveSets() {
         currentExerciseCard.appendChild(setsList);
     }
     
-    if (currentEditingSet) {
+    const modalElement = document.getElementById('setModal');
+    const isEditMode = !!currentEditingSet;
+    
+    if (isEditMode) {
         console.log('Updating existing set:', currentEditingSet);
         
         // Update the existing set by replacing its content
@@ -579,9 +661,6 @@ function saveSets() {
         setupSetItemListeners(currentEditingSet);
         
         console.log('Updated set with new values:', { setsCount, reps, weight });
-        
-        // Clear the editing reference
-        currentEditingSet = null;
     } else {
         console.log('Creating new set');
         // Create a new set item
@@ -610,34 +689,44 @@ function saveSets() {
         console.log('Created new set');
     }
     
-    // Reset form and close modal
-    if (setsModal) {
-        console.log('Hiding sets modal');
-        // Hide the modal first to prevent any further interactions
-        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('setModal'));
+    // Close the modal and reset state
+    if (modalElement) {
+        // First, blur any focused element inside the modal
+        const focusedElement = document.activeElement;
+        if (focusedElement && modalElement.contains(focusedElement)) {
+            focusedElement.blur();
+        }
+        
+        // Then hide the modal
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
         if (modalInstance) {
             modalInstance.hide();
         } else {
-            setsModal.hide();
+            // If no instance exists, hide the modal manually
+            modalElement.style.display = 'none';
+            document.body.classList.remove('modal-open');
+            const modalBackdrop = document.querySelector('.modal-backdrop');
+            if (modalBackdrop) {
+                modalBackdrop.remove();
+            }
+            // Ensure ARIA attributes are reset
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.removeAttribute('aria-modal');
         }
         
-        // Reset form fields after a small delay to ensure modal is hidden
-        setTimeout(() => {
-            console.log('Resetting form fields');
-            // Clear the form for next use
-            if (setsCountInput) setsCountInput.value = '';
-            if (repsInput) repsInput.value = '';
-            if (weightInput) weightInput.value = '';
-            
-            // Reset the save button text for next use
-            const saveBtn = document.getElementById('saveSetsBtn');
-            if (saveBtn) {
-                saveBtn.textContent = 'Add Set';
-            }
-            
-            // Reset the current editing set
-            currentEditingSet = null;
-        }, 100);
+        // Reset the form and button text
+        const modalTitle = document.getElementById('setModalLabel');
+        const saveBtn = document.getElementById('saveSetsBtn');
+        if (modalTitle) modalTitle.textContent = 'Add Sets';
+        if (saveBtn) saveBtn.textContent = 'Add Set';
+        
+        // Clear the editing reference
+        currentEditingSet = null;
+        
+        // Clear the form fields
+        if (setsCountInput) setsCountInput.value = '';
+        if (repsInput) repsInput.value = '';
+        if (weightInput) weightInput.value = '';
     }
 }
 
@@ -666,10 +755,65 @@ function setupSetItemListeners(setItem) {
             if (modalTitle) modalTitle.textContent = 'Edit Set';
             if (saveBtn) saveBtn.textContent = 'Update Set';
             
+            // Show the edit modal with the set's current values
+            const modalElement = document.getElementById('setModal');
+            if (!modalElement) return;
+            
+            // Set up modal instance with proper event handlers
+            const modalInstance = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',
+                keyboard: true,
+                focus: true
+            });
+            
+            // Store the element that triggered the modal
+            const triggerElement = document.activeElement;
+            
+            // Handle modal shown event
+            const handleShown = () => {
+                // Set ARIA attributes when shown
+                modalElement.removeAttribute('aria-hidden');
+                modalElement.setAttribute('aria-modal', 'true');
+                
+                // Focus on the first input field
+                if (setsCountInput) {
+                    setsCountInput.focus();
+                    setsCountInput.select();
+                }
+            };
+            
+            // Handle modal hidden event
+            const handleHidden = () => {
+                // Clean up ARIA attributes
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+                
+                // Blur any focused element inside the modal
+                const focusedElement = document.activeElement;
+                if (focusedElement && modalElement.contains(focusedElement)) {
+                    focusedElement.blur();
+                }
+                
+                // Return focus to the trigger element
+                if (triggerElement && typeof triggerElement.focus === 'function') {
+                    triggerElement.focus();
+                }
+                
+                // Clear form fields
+                if (setsCountInput) setsCountInput.value = '';
+                if (repsInput) repsInput.value = '';
+                if (weightInput) weightInput.value = '';
+                
+                // Reset editing state
+                currentEditingSet = null;
+            };
+            
+            // Add event listeners
+            modalElement.addEventListener('shown.bs.modal', handleShown, { once: true });
+            modalElement.addEventListener('hidden.bs.modal', handleHidden, { once: true });
+            
             // Show the modal
-            if (setsModal) {
-                setsModal.show();
-            }
+            modalInstance.show();
         });
     }
     
@@ -955,53 +1099,121 @@ function setupClientNotes() {
 
     // Open modal for new note
     function openNewNoteModal() {
+        const modalElement = document.getElementById('clientNotesModal');
+        if (!modalElement) return;
+        
         currentNoteId = null;
-        document.getElementById('clientNoteTitle').value = '';
-        document.getElementById('clientNoteContent').value = '';
+        clientNoteTitleInput.value = '';
+        clientNoteContentInput.value = '';
         
         // Update modal title
         const modalTitle = document.getElementById('clientNotesModalLabel');
         if (modalTitle) modalTitle.textContent = 'Add Client Note';
         
-        // Show the modal
-        clientNoteModal.show();
+        // Set up modal instance with proper event handlers
+        const modalInstance = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true,
+            focus: true
+        });
         
-        // Focus on the title field after the modal is shown
-        const clientNotesModalEl = document.getElementById('clientNotesModal');
+        // Store the element that triggered the modal
+        const triggerElement = document.activeElement;
+        
+        // Handle modal shown event
         const handleShown = () => {
-            const titleInput = document.getElementById('clientNoteTitle');
-            if (titleInput) {
-                titleInput.focus();
+            // Set ARIA attributes when shown
+            modalElement.removeAttribute('aria-hidden');
+            modalElement.setAttribute('aria-modal', 'true');
+            
+            // Focus on the title field
+            if (clientNoteTitleInput) {
+                clientNoteTitleInput.focus();
             }
+            
             // Remove the event listener to prevent multiple bindings
-            clientNotesModalEl.removeEventListener('shown.bs.modal', handleShown);
+            modalElement.removeEventListener('shown.bs.modal', handleShown);
         };
         
-        if (clientNotesModalEl) {
-            clientNotesModalEl.addEventListener('shown.bs.modal', handleShown);
-        } else {
-            // Fallback in case the event listener doesn't work
-            setTimeout(() => {
-                const titleInput = document.getElementById('clientNoteTitle');
-                if (titleInput) titleInput.focus();
-            }, 100);
-        }
+        // Handle modal hidden event
+        const handleHidden = () => {
+            // Clean up ARIA attributes
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.removeAttribute('aria-modal');
+            
+            // Return focus to the trigger element
+            if (triggerElement && typeof triggerElement.focus === 'function') {
+                triggerElement.focus();
+            }
+        };
+        
+        // Add event listeners
+        modalElement.addEventListener('shown.bs.modal', handleShown, { once: true });
+        modalElement.addEventListener('hidden.bs.modal', handleHidden, { once: true });
+        
+        // Show the modal
+        modalInstance.show();
     }
 
     // Open modal to edit existing note
     function openEditNoteModal(id) {
+        const modalElement = document.getElementById('clientNotesModal');
+        if (!modalElement) return;
+        
         const note = notes.find(n => n.id === id);
-        if (note) {
-            currentNoteId = id;
-            clientNoteTitleInput.value = note.title || '';
-            clientNoteContentInput.value = note.content;
+        if (!note) return;
+        
+        currentNoteId = id;
+        clientNoteTitleInput.value = note.title || '';
+        clientNoteContentInput.value = note.content;
+        
+        // Update modal title
+        const modalTitle = document.getElementById('clientNotesModalLabel');
+        if (modalTitle) modalTitle.textContent = 'Edit Client Note';
+        
+        // Set up modal instance with proper event handlers
+        const modalInstance = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true,
+            focus: true
+        });
+        
+        // Store the element that triggered the modal
+        const triggerElement = document.activeElement;
+        
+        // Handle modal shown event
+        const handleShown = () => {
+            // Set ARIA attributes when shown
+            modalElement.removeAttribute('aria-hidden');
+            modalElement.setAttribute('aria-modal', 'true');
             
-            // Update modal title
-            const modalTitle = document.getElementById('clientNotesModalLabel');
-            if (modalTitle) modalTitle.textContent = 'Edit Client Note';
+            // Focus on the title field
+            if (clientNoteTitleInput) {
+                clientNoteTitleInput.focus();
+            }
             
-            clientNoteModal.show();
-        }
+            // Remove the event listener to prevent multiple bindings
+            modalElement.removeEventListener('shown.bs.modal', handleShown);
+        };
+        
+        // Handle modal hidden event
+        const handleHidden = () => {
+            // Clean up ARIA attributes
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.removeAttribute('aria-modal');
+            
+            // Return focus to the trigger element
+            if (triggerElement && typeof triggerElement.focus === 'function') {
+                triggerElement.focus();
+            }
+        };
+        
+        // Add event listeners
+        modalElement.addEventListener('shown.bs.modal', handleShown, { once: true });
+        modalElement.addEventListener('hidden.bs.modal', handleHidden, { once: true });
+        
+        // Show the modal
+        modalInstance.show();
     }
 
     // Event Listeners
@@ -1024,7 +1236,32 @@ function setupClientNotes() {
             updateNote(currentNoteId, title, content);
         }
         
-        clientNoteModal.hide();
+        // Get the modal instance and hide it
+        const modalElement = document.getElementById('clientNotesModal');
+        if (modalElement) {
+            // First, blur any focused element inside the modal
+            const focusedElement = document.activeElement;
+            if (focusedElement && modalElement.contains(focusedElement)) {
+                focusedElement.blur();
+            }
+            
+            // Then hide the modal
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            } else {
+                // If no instance exists, hide the modal manually
+                modalElement.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                const modalBackdrop = document.querySelector('.modal-backdrop');
+                if (modalBackdrop) {
+                    modalBackdrop.remove();
+                }
+                // Ensure ARIA attributes are reset
+                modalElement.setAttribute('aria-hidden', 'true');
+                modalElement.removeAttribute('aria-modal');
+            }
+        }
     });
 
     // Handle edit and delete buttons
