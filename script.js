@@ -1588,35 +1588,65 @@ function printReport() {
                     margin-bottom: 30px;
                     text-align: left;
                 }
-                .session-title {
-                    font-size: 28px;
+                .session-title, .section-title {
+                    font-size: 12pt !important;
                     font-weight: bold;
-                    margin-bottom: 20px;
+                    margin: 10px 0 8px !important;
                     color: #333;
-                    text-align: center;
+                    text-align: left;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
                 }
-                .info-table {
+                .info-table, .exercise-table, .client-notes-section table {
                     width: 100%;
-                    max-width: 500px;
+                    max-width: 100%;
                     margin: 0 auto;
                     border: 1px solid #000;
                     border-collapse: collapse;
                     font-family: Arial, sans-serif;
+                    table-layout: fixed;
                 }
-                .info-table tr {
-                    height: 40px;
+                .info-table tr, .exercise-table tr {
+                    height: 32px;
                 }
                 .info-table td {
-                    padding: 8px 15px;
+                    padding: 4px 8px;
                     border: 1px solid #000;
+                    vertical-align: middle;
                 }
                 .info-table td:first-child {
                     font-weight: bold;
-                    width: 120px;
+                    width: 25%;
                     background-color: #f0f0f0;
                 }
                 
                 /* Exercises Table Styles */
+                .client-notes-section {
+                    margin-top: 20px;
+                    width: 100%;
+                }
+                .client-notes-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 15px;
+                }
+                .client-notes-table .note-title {
+                    background-color: #f8f9fa;
+                    border: 1px solid #000;
+                    border-bottom: none;
+                    padding: 6px 12px;
+                    font-size: 10pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    text-align: left;
+                    height: 32px;
+                }
+                .client-notes-table .note-content {
+                    border: 1px solid #000;
+                    padding: 8px 12px;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                }
                 .exercises-section {
                     margin-top: 40px;
                 }
@@ -1627,37 +1657,43 @@ function printReport() {
                 .exercise-header {
                     background-color: #f8f9fa;
                     border: 1px solid #000;
-                    border-bottom: 1px solid #000;
-                    padding: 10px 15px;
-                    font-size: 18px;
+                    border-bottom: none;
+                    padding: 6px 12px;
+                    font-size: 10pt;
                     font-weight: bold;
                     color: #2c3e50;
                     text-align: left;
-                    margin-bottom: 0;
-                    border-radius: 0;
+                    margin: 0;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
                 }
                 .exercise-table {
                     width: 100%;
-                    max-width: 500px;
-                    margin: 0;
-                    border: 1px solid #000;
-                    border-top: none;
+                    max-width: 300px;
+                    margin: 10px 0 20px;
                     border-collapse: collapse;
-                    font-family: Arial, sans-serif;
-                    border-spacing: 0;
+                    border: 1px solid #000;
                 }
-                .exercise-table th,
-                .exercise-table td {
+                .exercise-name {
+                    text-align: left;
                     padding: 8px 12px;
+                    font-weight: bold;
+                    background-color: #f8f9fa;
+                    font-size: 11pt;
+                    border-bottom: 1px solid #000;
+                }
+                .exercise-table th {
+                    background-color: #f0f0f0;
+                    padding: 8px;
                     border: 1px solid #000;
                     text-align: center;
+                    font-weight: bold;
                 }
-                .exercise-table tfoot td {
-                    text-align: left;
-                    background-color: #f8f9fa;
-                    padding: 10px 12px;
-                    border-top: 2px solid #000;
-                    font-size: 0.95em;
+                .exercise-table td {
+                    padding: 8px;
+                    border: 1px solid #000;
+                    text-align: center;
                 }
                 .exercise-notes-label {
                     font-weight: bold;
@@ -1675,29 +1711,117 @@ function printReport() {
                     font-size: 14px;
                 }
                 @media print {
+                    @page {
+                        margin: 0.5cm;
+                        size: letter;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    body {
+                        padding: 5px !important;
+                        margin: 0 !important;
+                        font-size: 9pt !important;
+                        line-height: 1.2 !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        width: 100% !important;
+                    }
+                    .container {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        padding: 0 5px !important;
+                        margin: 0 auto !important;
+                    }
+                    .report-header {
+                        margin-bottom: 5px !important;
+                    }
+                    .session-title {
+                        font-size: 12pt !important;
+                        margin: 0 0 5px 0 !important;
+                    }
+                    .info-table {
+                        width: 100% !important;
+                        margin: 0 auto 5px !important;
+                        font-size: 8pt !important;
+                        border: 1px solid #000 !important;
+                        table-layout: fixed !important;
+                    }
+                    .info-table td {
+                        padding: 4px 6px !important;
+                        height: 28px !important;
+                        min-height: 28px !important;
+                        border: 1px solid #000 !important;
+                    }
+                    .info-table td:first-child {
+                        width: 25% !important;
+                        background-color: #f0f0f0 !important;
+                    }
+                    .info-table td {
+                        padding: 2px 6px !important;
+                        border: 1px solid #000 !important;
+                    }
+                    .info-table td:first-child {
+                        background-color: #f0f0f0 !important;
+                        width: 100px !important;
+                    }
+                    .exercises-section, .client-notes-section {
+                        margin-top: 10px !important;
+                    }
                     .exercise-table-container {
-                        page-break-inside: avoid;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                        margin-bottom: 8px !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+                    .exercise-header {
+                        padding: 3px 6px !important;
+                        font-size: 9pt !important;
+                        margin: 0 !important;
+                        border: 1px solid #000 !important;
+                        border-bottom: none !important;
                     }
                     .exercise-table {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        font-size: 8pt !important;
                         border: 1px solid #000 !important;
                         border-top: none !important;
+                        margin: 0 !important;
+                        table-layout: fixed !important;
                     }
                     .exercise-table th,
                     .exercise-table td {
+                        width: 33.33% !important;
+                        padding: 4px 6px !important;
+                        height: 28px !important;
+                        min-height: 28px !important;
                         border: 1px solid #000 !important;
                     }
-                    .exercise-header {
+                    .exercise-table th, 
+                    .exercise-table td {
+                        padding: 2px 4px !important;
                         border: 1px solid #000 !important;
-                        border-bottom: 1px solid #000 !important;
                     }
-                    body { 
-                        padding: 20px;
+                    .exercise-table th {
+                        background-color: #f0f0f0 !important;
+                    }
+                    .exercise-table tfoot td {
+                        padding: 4px 6px !important;
+                        font-size: 8.5pt !important;
+                    }
+                    .client-notes-section table {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+                    .client-notes-section td {
+                        padding: 4px 6px !important;
                     }
                     .no-print { 
                         display: none !important; 
                     }
-                    .info-table {
-                        border: 1px solid #000 !important;
                     }
                     .info-table td {
                         border: 1px solid #000 !important;
@@ -1730,50 +1854,58 @@ function printReport() {
                     </table>
                 </div>
                 
-                <!-- Exercises Table -->
-                <div class="exercises-section mt-5">
-                    <h3 class="text-center mb-3">Exercises</h3>
-                    ${exercises.length > 0 ? 
-                        exercises.map(exercise => `
-                            <div class="exercise-table-container mb-4" style="max-width: 500px; margin: 0 auto;">
-                                <div class="exercise-header">${exercise.name}</div>
-                                ${exercise.sets.length > 0 || exercise.notes ? `
-                                    <table class="exercise-table" cellspacing="0" cellpadding="0">
-                                        ${exercise.sets.length > 0 ? `
-                                        <thead>
-                                            <tr>
-                                                <th>Set</th>
-                                                <th>Weight</th>
-                                                <th>Reps</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${exercise.sets.map((set, index) => `
-                                                <tr>
-                                                    <td>${set.setNumber || (index + 1)}</td>
-                                                    <td>${set.weight}</td>
-                                                    <td>${set.reps}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                        ` : ''}
-                                        ${exercise.notes ? `
-                                        <tfoot>
-                                            <tr>
-                                                <td colspan="3" style="text-align: left; background-color: #f8f9fa; padding: 15px; border-top: ${exercise.sets.length > 0 ? '2px' : '1px'} solid #000 !important;">
-                                                    <div style="white-space: pre-line; margin: 0;">
-                                                        <strong>Notes:</strong> ${exercise.notes.replace(/\n/g, '<br>')}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                        ` : ''}
-                                    </table>
-                                ` : '<p class="text-muted">No sets or notes recorded</p>'}
+                <!-- Exercises Section -->
+                <div class="exercises-section">
+                    <h3 class="section-title">Exercises</h3>
+                    ${exercises.length > 0 ? exercises.map(exercise => `
+                        <table class="exercise-table">
+                            <thead>
+                                <tr>
+                                    <th colspan="3" class="exercise-name">${exercise.name}</th>
+                                </tr>
+                                <tr>
+                                    <th>Set</th>
+                                    <th>Reps</th>
+                                    <th>Weight</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${exercise.sets && exercise.sets.length > 0 ? exercise.sets.map(set => `
+                                    <tr>
+                                        <td style="text-align: center;">${set.setNumber || ''}</td>
+                                        <td style="text-align: center;">${set.reps || ''}</td>
+                                        <td style="text-align: center;">${set.weight || ''}</td>
+                                    </tr>
+                                `).join('') : `
+                                    <tr>
+                                        <td colspan="3" style="text-align: center; padding: 8px;">No sets recorded</td>
+                                    </tr>
+                                `}
+                            </tbody>
+                        </table>
+                    `).join('') : `
+                        <div style="text-align: center; color: #6c757d; font-style: italic; margin: 20px 0;">
+                            No exercises recorded
                         </div>
-                    </div>
-                `).join('') : '<p>No exercises recorded</p>'}
+                    `}
                 </div>
+                </div>
+                
+                ${clientNotes.length > 0 ? `
+                <div class="client-notes-section">
+                    <h3 class="section-title">Client Notes</h3>
+                    <table class="client-notes-table">
+                        ${clientNotes.map(note => `
+                            <tr>
+                                <td class="note-title">${note.title}</td>
+                            </tr>
+                            <tr>
+                                <td class="note-content">${note.content ? note.content.replace(/\n/g, '\n') : ''}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+                ` : ''}
             </div>
             
             <script>

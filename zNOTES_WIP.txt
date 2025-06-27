@@ -1,9 +1,3 @@
-FIRST: Aria-hidden issue comes up after adding an exercise...
 
-SECOND: Need to fix the notes when eiting notes in an exercise
+Get formatting to go to printable version, currently it dumps in a straight line.
 
-THIRD: Keep working on printable version layout
-
-FOURTH: Exercise name edit button works but need to make it a modal popup to have room to see what were editing
-
-FIFTH: 
