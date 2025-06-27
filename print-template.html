@@ -213,8 +213,8 @@
             html += `
                 <div class="footer no-print" style="margin-top: 30px; text-align: center; font-size: 0.9em; color: #666;">
                     <p>Report generated on ${new Date().toLocaleString()}</p>
-                    <button onclick="window.print()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Print Report
+                    <button onclick="window.print()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-printer"></i> Print
                     </button>
                 </div>
             `;

@@ -8,6 +8,12 @@ let reportClientName, reportTrainerName, reportDate;
 let exerciseNameInput, repsInput, weightInput, exerciseNotesInput, numSetsInput, setsCountInput;
 let currentExerciseCard = null;
 let currentExerciseNotes = '';
+let exercises = []; // Global array to store exercises data
+
+// Helper function to escape special regex characters
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
 
 // Optimized DOM ready handler
 function domReady(callback) {
@@ -430,9 +436,42 @@ function saveExercise() {
         const saveEdit = () => {
             const newName = exerciseInput.value.trim();
             if (newName) {
+                const oldName = exerciseTitle.textContent;
                 exerciseTitle.textContent = newName;
                 // Update the input value to match the saved name
                 exerciseInput.value = newName;
+                
+                // Update the exercise name in any existing notes for this exercise
+                const exerciseNotes = exerciseCard.querySelector('.exercise-notes');
+                if (exerciseNotes) {
+                    // Find the notes content element (excluding the buttons)
+                    const notesContent = exerciseNotes.querySelector('.notes-content');
+                    if (notesContent) {
+                        const notesText = notesContent.textContent.trim();
+                        if (notesText) {
+                            // Update the notes to reflect the new exercise name
+                            const newNotes = notesText.replace(
+                                new RegExp(`^Notes for ${escapeRegExp(oldName)}:`, 'i'), 
+                                `Notes for ${newName}:`
+                            );
+                            notesContent.textContent = newNotes;
+                        }
+                    }
+                    
+                    // Also update the exercise name in the exercises array if it exists there
+                    const exerciseId = exerciseCard.id.replace('exercise-', '');
+                    const exercise = exercises.find(ex => ex.id === exerciseId);
+                    if (exercise) {
+                        exercise.name = newName;
+                        // Update notes in the exercise object if they exist
+                        if (exercise.notes) {
+                            exercise.notes = exercise.notes.replace(
+                                new RegExp(`^Notes for ${escapeRegExp(oldName)}:`, 'i'),
+                                `Notes for ${newName}:`
+                            );
+                        }
+                    }
+                }
             }
             editContainer.classList.add('d-none');
             exerciseTitle.classList.remove('d-none');
@@ -945,8 +984,8 @@ function setupClientNotes() {
     const clientNotesList = document.getElementById('clientNotesList');
     const clientNoteModalEl = document.getElementById('clientNotesModal');
     const saveClientNoteBtn = document.getElementById('saveClientNoteBtn');
-    const clientNoteTitleInput = document.getElementById('clientNoteTitle');
-    const clientNoteContentInput = document.getElementById('clientNoteContent');
+    clientNoteTitleInput = document.getElementById('clientNoteTitle');
+    clientNoteContentInput = document.getElementById('clientNoteContent');
     
     // Early exit if required elements don't exist
     if (!clientNoteModalEl || !saveClientNoteBtn || !clientNoteTitleInput || !clientNoteContentInput) {
@@ -1474,8 +1513,8 @@ function printReport() {
         const trainerName = document.getElementById('reportTrainerName').textContent || 'Trainer Name';
         const date = document.getElementById('reportDate').textContent || new Date().toLocaleDateString();
         
-        // Get all exercises data
-        const exercises = [];
+        // Clear existing exercises data
+        exercises = [];
         
         // Get client notes
         const clientNotes = [];
@@ -1491,11 +1530,16 @@ function printReport() {
             });
         });
         
-        // Get exercises data
+        // Clear existing exercises
+        exercises = [];
+        
+        // Get exercises data from DOM
         document.querySelectorAll('#exercisesList > .card').forEach(card => {
             const name = card.querySelector('.card-title')?.textContent.trim() || 'Exercise';
             const notesElement = card.querySelector('.exercise-notes');
-            const notes = notesElement ? notesElement.textContent.trim() : '';
+            let notes = notesElement ? notesElement.textContent.trim() : '';
+            // Remove any existing 'Notes:' prefix if present
+            notes = notes.replace(/^Notes:\s*/i, '').trim();
             
             const sets = [];
             card.querySelectorAll('.sets-list > div').forEach((setItem, index) => {
@@ -1582,8 +1626,8 @@ function printReport() {
                 }
                 .exercise-header {
                     background-color: #f8f9fa;
-                    border: 1px solid #dee2e6;
-                    border-bottom: none;
+                    border: 1px solid #000;
+                    border-bottom: 1px solid #000;
                     padding: 10px 15px;
                     font-size: 18px;
                     font-weight: bold;
@@ -1596,16 +1640,28 @@ function printReport() {
                 .exercise-table {
                     width: 100%;
                     max-width: 500px;
-                    margin: 0 0 15px 0;
+                    margin: 0;
                     border: 1px solid #000;
+                    border-top: none;
                     border-collapse: collapse;
                     font-family: Arial, sans-serif;
+                    border-spacing: 0;
                 }
                 .exercise-table th,
                 .exercise-table td {
                     padding: 8px 12px;
                     border: 1px solid #000;
                     text-align: center;
+                }
+                .exercise-table tfoot td {
+                    text-align: left;
+                    background-color: #f8f9fa;
+                    padding: 10px 12px;
+                    border-top: 2px solid #000;
+                    font-size: 0.95em;
+                }
+                .exercise-notes-label {
+                    font-weight: bold;
                 }
                 .exercise-table th {
                     background-color: #f0f0f0;
@@ -1625,10 +1681,15 @@ function printReport() {
                     }
                     .exercise-table {
                         border: 1px solid #000 !important;
+                        border-top: none !important;
                     }
                     .exercise-table th,
                     .exercise-table td {
                         border: 1px solid #000 !important;
+                    }
+                    .exercise-header {
+                        border: 1px solid #000 !important;
+                        border-bottom: 1px solid #000 !important;
                     }
                     body { 
                         padding: 20px;
@@ -1652,19 +1713,19 @@ function printReport() {
         </head>
         <body>
             <div class="container">
-                <div class="report-header">
-                    <div class="session-title">Training Session Report</div>
-                    <table class="info-table" cellspacing="0" cellpadding="0">
+                <div class="report-header text-center mb-4">
+                    <h1 class="session-title mb-3">Training Session Report</h1>
+                    <table class="info-table" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                         <tr>
-                            <td>Client:</td>
+                            <td><strong>Client:</strong></td>
                             <td>${clientName}</td>
                         </tr>
                         <tr>
-                            <td>Trainer:</td>
+                            <td><strong>Trainer:</strong></td>
                             <td>${trainerName}</td>
                         </tr>
                         <tr>
-                            <td>Date:</td>
+                            <td><strong>Date:</strong></td>
                             <td>${date}</td>
                         </tr>
                     </table>
@@ -1677,8 +1738,9 @@ function printReport() {
                         exercises.map(exercise => `
                             <div class="exercise-table-container mb-4" style="max-width: 500px; margin: 0 auto;">
                                 <div class="exercise-header">${exercise.name}</div>
-                                ${exercise.sets.length > 0 ? `
+                                ${exercise.sets.length > 0 || exercise.notes ? `
                                     <table class="exercise-table" cellspacing="0" cellpadding="0">
+                                        ${exercise.sets.length > 0 ? `
                                         <thead>
                                             <tr>
                                                 <th>Set</th>
@@ -1695,19 +1757,21 @@ function printReport() {
                                                 </tr>
                                             `).join('')}
                                         </tbody>
+                                        ` : ''}
+                                        ${exercise.notes ? `
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="3" style="text-align: left; background-color: #f8f9fa; padding: 10px 12px; border-top: ${exercise.sets.length > 0 ? '2px' : '1px'} solid #000;">
+                                                    <span class="exercise-notes-label">Notes for ${exercise.name}:</span> ${exercise.notes}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                        ` : ''}
                                     </table>
-                                ` : '<p class="text-muted">No sets recorded</p>'}
+                                ` : '<p class="text-muted">No sets or notes recorded</p>'}
                         </div>
-                        ${exercise.notes ? `
-                            <div class="exercise-notes">
-                                <strong>Notes:</strong> ${exercise.notes}
-                            </div>
-                        ` : ''}
                     </div>
                 `).join('') : '<p>No exercises recorded</p>'}
-                    <button onclick="window.print()" class="btn btn-primary">
-                        <i class="bi bi-printer"></i> Print Report
-                    </button>
                 </div>
             </div>
             
